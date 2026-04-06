@@ -117,7 +117,7 @@ export default function InstallmentCard({
           <div className="space-y-2 border-t border-border pt-4">
             <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
               {installment.payments.map((payment) => {
-                const monthName = new Date(2024, payment.month - 1).toLocaleDateString('id-ID', {
+                const monthName = new Date(payment.year, payment.month - 1).toLocaleDateString('id-ID', {
                   month: 'short',
                   year: 'numeric',
                 });

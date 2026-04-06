@@ -59,7 +59,7 @@ export default function Installments() {
 
   if (!isLoaded) {
     return (
-      <DashboardLayout currentPage="dashboard">
+      <DashboardLayout currentPage="installments">
         <div className="flex items-center justify-center h-screen">
           <p className="text-muted-foreground">Memuat data...</p>
         </div>
@@ -74,7 +74,7 @@ export default function Installments() {
   const upcomingPayments = getUpcomingPayments();
 
   return (
-    <DashboardLayout currentPage="dashboard">
+    <DashboardLayout currentPage="installments">
       <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -123,7 +123,7 @@ export default function Installments() {
                 <div key={payment.id} className="bg-white p-3 rounded-lg border border-blue-200">
                   <p className="font-medium text-foreground">{payment.installmentName}</p>
                   <p className="text-sm text-muted-foreground">
-                    {new Date(2024, payment.month - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                    {new Date(payment.year, payment.month - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
                   </p>
                   <p className="font-semibold text-blue-600 mt-2">Rp {payment.amount.toLocaleString('id-ID')}</p>
                 </div>

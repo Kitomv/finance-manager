@@ -1,13 +1,28 @@
 import { ReactNode } from 'react';
 import { BarChart3, Settings, Home, TrendingUp, TrendingDown, CreditCard } from 'lucide-react';
-import { Link } from 'wouter';
+import { useLocation } from 'wouter';
 
 interface DashboardLayoutProps {
   children: ReactNode;
   currentPage?: 'dashboard' | 'transactions' | 'analytics' | 'installments' | 'savings' | 'settings';
 }
 
-export default function DashboardLayout({ children, currentPage = 'dashboard' }: DashboardLayoutProps) {
+export default function DashboardLayout({ children, currentPage }: DashboardLayoutProps) {
+  const [location, navigate] = useLocation();
+  
+  // Auto-detect current page from URL if not provided
+  const getActivePageFromUrl = () => {
+    if (location === '/') return 'dashboard';
+    if (location === '/transactions') return 'transactions';
+    if (location === '/analytics') return 'analytics';
+    if (location === '/installments') return 'installments';
+    if (location === '/savings') return 'savings';
+    if (location === '/settings') return 'settings';
+    return 'dashboard';
+  };
+  
+  const activePage = currentPage || getActivePageFromUrl();
+  
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home, href: '/' },
     { id: 'transactions', label: 'Transaksi', icon: TrendingUp, href: '/transactions' },
@@ -33,12 +48,16 @@ export default function DashboardLayout({ children, currentPage = 'dashboard' }:
         <nav className="px-4 py-8 space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentPage === item.id;
+            const isActive = activePage === item.id;
             return (
-              <Link
+              <a
                 key={item.id}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate(item.href);
+                }}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all cursor-pointer ${
                   isActive
                     ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
                     : 'text-sidebar-foreground hover:bg-secondary'
@@ -46,7 +65,7 @@ export default function DashboardLayout({ children, currentPage = 'dashboard' }:
               >
                 <Icon className="w-5 h-5" />
                 <span>{item.label}</span>
-              </Link>
+              </a>
             );
           })}
         </nav>
