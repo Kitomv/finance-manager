@@ -10,6 +10,7 @@ import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Installments from "./pages/Installments";
 import Savings from "./pages/Savings";
+import ActivityLog from "./pages/ActivityLog";
 
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/installments" component={Installments} />
       <Route path="/savings" component={Savings} />
+      <Route path="/activity-log" component={ActivityLog} />
       <Route path="/settings" component={Settings} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
