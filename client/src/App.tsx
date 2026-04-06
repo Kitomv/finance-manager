@@ -9,6 +9,7 @@ import Transactions from "./pages/Transactions";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Installments from "./pages/Installments";
+import Savings from "./pages/Savings";
 
 
 function Router() {
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/transactions" component={Transactions} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/installments" component={Installments} />
+      <Route path="/savings" component={Savings} />
       <Route path="/settings" component={Settings} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}

@@ -180,12 +180,10 @@ export default function Home() {
                 ))}
               </div>
               <Link href="/installments">
-                <a className="inline-block mt-4">
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <CreditCard className="w-4 h-4" />
-                    Lihat Semua Cicilan ({activeInstallments} aktif)
-                  </Button>
-                </a>
+                <Button variant="outline" size="sm" className="gap-2 mt-4">
+                  <CreditCard className="w-4 h-4" />
+                  Lihat Semua Cicilan ({activeInstallments} aktif)
+                </Button>
               </Link>
             </Card>
           </div>
