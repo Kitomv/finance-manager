@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { BarChart3, Settings, Home, TrendingUp, TrendingDown, CreditCard, Menu, X, Users, LogOut } from 'lucide-react';
+import { BarChart3, Settings, Home, TrendingUp, TrendingDown, CreditCard, Menu, X, LogOut } from 'lucide-react';
 import { useLocation } from 'wouter';
 import ThemeSwitcher from './ThemeSwitcher';
 import { useAccessControl } from '@/contexts/AccessControlContext';
@@ -35,7 +35,6 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
     { id: 'installments', label: 'Cicilan', icon: CreditCard, href: '/installments' },
     { id: 'savings', label: 'Tabungan', icon: TrendingDown, href: '/savings' },
     { id: 'settings', label: 'Pengaturan', icon: Settings, href: '/settings' },
-    ...(hasPermission('canManageUsers') ? [{ id: 'user-management', label: 'User Management', icon: Users, href: '/user-management' }] : []),
   ];
 
   const handleLogout = () => {
