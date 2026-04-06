@@ -1,7 +1,9 @@
 import { ReactNode, useState } from 'react';
-import { BarChart3, Settings, Home, TrendingUp, TrendingDown, CreditCard, Menu, X } from 'lucide-react';
+import { BarChart3, Settings, Home, TrendingUp, TrendingDown, CreditCard, Menu, X, Users, LogOut } from 'lucide-react';
 import { useLocation } from 'wouter';
 import ThemeSwitcher from './ThemeSwitcher';
+import { useAccessControl } from '@/contexts/AccessControlContext';
+import { Button } from './ui/button';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -11,6 +13,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children, currentPage }: DashboardLayoutProps) {
   const [location, navigate] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { currentUser, logout, hasPermission } = useAccessControl();
   
   // Auto-detect current page from URL if not provided
   const getActivePageFromUrl = () => {
@@ -32,7 +35,13 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
     { id: 'installments', label: 'Cicilan', icon: CreditCard, href: '/installments' },
     { id: 'savings', label: 'Tabungan', icon: TrendingDown, href: '/savings' },
     { id: 'settings', label: 'Pengaturan', icon: Settings, href: '/settings' },
+    ...(hasPermission('canManageUsers') ? [{ id: 'user-management', label: 'User Management', icon: Users, href: '/user-management' }] : []),
   ];
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-background">
@@ -48,7 +57,7 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
         </div>
 
         <nav className="px-4 py-8 space-y-2 flex-1 overflow-y-auto">
-          {navItems.map((item) => {
+          {navItems.map((item: any) => {
             const Icon = item.icon;
             const isActive = activePage === item.id;
             return (
@@ -72,9 +81,25 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
           })}
         </nav>
 
-        {/* Theme Switcher */}
-        <div className="px-4 py-4 border-t border-sidebar-border flex justify-center">
-          <ThemeSwitcher />
+        {/* User Info & Actions */}
+        <div className="px-4 py-4 border-t border-sidebar-border space-y-3">
+          <div className="px-3 py-2 bg-sidebar-accent/20 rounded-lg">
+            <p className="text-xs text-sidebar-foreground/70">Logged in as</p>
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">{currentUser?.username}</p>
+            <p className="text-xs text-sidebar-foreground/60 uppercase tracking-wide">{currentUser?.accessLevel}</p>
+          </div>
+          <div className="flex gap-2">
+            <ThemeSwitcher />
+            <Button
+              onClick={handleLogout}
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              title="Logout"
+            >
+              <LogOut className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
       </aside>
 
@@ -108,7 +133,7 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
         </div>
 
         <nav className="px-4 py-4 space-y-2">
-          {navItems.map((item) => {
+          {navItems.map((item: any) => {
             const Icon = item.icon;
             const isActive = activePage === item.id;
             return (
@@ -132,6 +157,23 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
             );
           })}
         </nav>
+
+        {/* Mobile User Info */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-sidebar-border bg-sidebar space-y-3">
+          <div className="px-3 py-2 bg-sidebar-accent/20 rounded-lg">
+            <p className="text-xs text-sidebar-foreground/70">Logged in as</p>
+            <p className="text-sm font-semibold text-sidebar-foreground truncate">{currentUser?.username}</p>
+            <p className="text-xs text-sidebar-foreground/60 uppercase tracking-wide">{currentUser?.accessLevel}</p>
+          </div>
+          <Button
+            onClick={handleLogout}
+            variant="destructive"
+            className="w-full gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Logout
+          </Button>
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -164,7 +206,7 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
 
         {/* Mobile Bottom Navigation */}
         <nav className="md:hidden bg-sidebar border-t border-sidebar-border flex justify-around">
-          {navItems.map((item) => {
+          {navItems.map((item: any) => {
             const Icon = item.icon;
             const isActive = activePage === item.id;
             return (

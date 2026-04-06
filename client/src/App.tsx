@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { AccessControlProvider, useAccessControl } from "./contexts/AccessControlContext";
 import NotificationContainer from "./components/NotificationContainer";
 import Home from "./pages/Home";
 import Transactions from "./pages/Transactions";
@@ -12,9 +13,32 @@ import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Installments from "./pages/Installments";
 import Savings from "./pages/Savings";
+import Login from "./pages/Login";
+import UserManagement from "./pages/UserManagement";
 
+
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { currentUser } = useAccessControl();
+  
+  if (!currentUser) {
+    return <Login />;
+  }
+  
+  return <Component />;
+}
 
 function Router() {
+  const { currentUser } = useAccessControl();
+  
+  if (!currentUser) {
+    return (
+      <Switch>
+        <Route path="/" component={Login} />
+        <Route component={Login} />
+      </Switch>
+    );
+  }
+  
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -23,6 +47,7 @@ function Router() {
       <Route path="/installments" component={Installments} />
       <Route path="/savings" component={Savings} />
       <Route path="/settings" component={Settings} />
+      <Route path="/user-management" component={UserManagement} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -38,18 +63,20 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        switchable
-      >
-        <NotificationProvider>
-          <TooltipProvider>
-            <Toaster />
-            <NotificationContainer />
-            <Router />
-          </TooltipProvider>
-        </NotificationProvider>
-      </ThemeProvider>
+      <AccessControlProvider>
+        <ThemeProvider
+          defaultTheme="light"
+          switchable
+        >
+          <NotificationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <NotificationContainer />
+              <Router />
+            </TooltipProvider>
+          </NotificationProvider>
+        </ThemeProvider>
+      </AccessControlProvider>
     </ErrorBoundary>
   );
 }
