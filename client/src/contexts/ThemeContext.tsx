@@ -31,6 +31,15 @@ export function ThemeProvider({
 
   useEffect(() => {
     const root = document.documentElement;
+    
+    // Add animation class
+    root.classList.add("theme-switching");
+    
+    // Remove animation class after animation completes
+    const timer = setTimeout(() => {
+      root.classList.remove("theme-switching");
+    }, 300);
+    
     if (theme === "dark") {
       root.classList.add("dark");
     } else {
@@ -40,6 +49,8 @@ export function ThemeProvider({
     if (switchable) {
       localStorage.setItem("theme", theme);
     }
+    
+    return () => clearTimeout(timer);
   }, [theme, switchable]);
 
   const toggleTheme = switchable

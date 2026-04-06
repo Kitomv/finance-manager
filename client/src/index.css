@@ -115,7 +115,7 @@
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring/50 transition-colors duration-300;
   }
   body {
     @apply bg-background text-foreground;
@@ -158,6 +158,23 @@
   .flex {
     min-height: 0;
     min-width: 0;
+  }
+
+  /* Theme transition animation */
+  @keyframes themeSwitch {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  .theme-switching {
+    animation: themeSwitch 0.3s ease-in-out;
   }
 
   @media (min-width: 640px) {
