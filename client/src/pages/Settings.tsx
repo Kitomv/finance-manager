@@ -1,12 +1,14 @@
+import { useRef } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { AlertCircle, Trash2, Download } from 'lucide-react';
+import { AlertCircle, Trash2, Download, Upload } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { toast } from 'sonner';
 
 export default function Settings() {
-  const { transactions } = useTransactions();
+  const { transactions, importTransactions } = useTransactions();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleExportData = () => {
     const dataStr = JSON.stringify(transactions, null, 2);
@@ -27,6 +29,52 @@ export default function Settings() {
     }
   };
 
+  const handleImportData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const importedData = JSON.parse(content);
+
+        // Validate that it's an array of transactions
+        if (!Array.isArray(importedData)) {
+          toast.error('Format JSON tidak valid. Harus berupa array transaksi.');
+          return;
+        }
+
+        // Validate transaction structure
+        const isValid = importedData.every(
+          (item: any) =>
+            item.id &&
+            item.type &&
+            item.amount &&
+            item.category &&
+            item.date
+        );
+
+        if (!isValid) {
+          toast.error('Struktur data transaksi tidak valid.');
+          return;
+        }
+
+        // Import the data
+        importTransactions(importedData);
+        toast.success(`${importedData.length} transaksi berhasil diimport`);
+      } catch (error) {
+        toast.error('Gagal membaca file JSON. Pastikan format file benar.');
+      }
+    };
+    reader.readAsText(file);
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   return (
     <DashboardLayout currentPage="settings">
       <div className="space-y-8">
@@ -40,6 +88,33 @@ export default function Settings() {
         <Card className="p-6">
           <h2 className="text-xl font-semibold text-foreground mb-4">Manajemen Data</h2>
           <div className="space-y-4">
+            {/* Import Data */}
+            <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
+              <div>
+                <h3 className="font-medium text-foreground">Impor Data</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Impor data transaksi dari file JSON yang sudah di-ekspor sebelumnya
+                </p>
+              </div>
+              <div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportData}
+                  className="hidden"
+                />
+                <Button
+                  onClick={() => fileInputRef.current?.click()}
+                  variant="outline"
+                  className="gap-2"
+                >
+                  <Upload className="w-4 h-4" />
+                  Impor
+                </Button>
+              </div>
+            </div>
+
             {/* Export Data */}
             <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
               <div>

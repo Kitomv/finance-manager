@@ -79,6 +79,18 @@ export function useTransactions() {
     });
   };
 
+  const importTransactions = (importedData: Transaction[]) => {
+    setTransactions((prev) => {
+      const existingIds = new Set(prev.map((t) => t.id));
+      const newTransactions = importedData.filter(
+        (t) => !existingIds.has(t.id)
+      );
+      return [...newTransactions, ...prev].sort(
+        (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
+      );
+    });
+  };
+
   return {
     transactions,
     isLoaded,
@@ -89,5 +101,6 @@ export function useTransactions() {
     getTotalExpense,
     getBalance,
     getTransactionsByMonth,
+    importTransactions,
   };
 }
