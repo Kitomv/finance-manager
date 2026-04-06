@@ -2,10 +2,9 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import InstallmentForm from '@/components/InstallmentForm';
 import InstallmentCard from '@/components/InstallmentCard';
-import InstallmentMaintenance from '@/components/InstallmentMaintenance';
+
 import { useInstallments, Installment } from '@/hooks/useInstallments';
 import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 
 export default function Installments() {
@@ -20,10 +19,6 @@ export default function Installments() {
     getRemainingAmount,
     getProgressPercentage,
     getUpcomingPayments,
-    duplicateInstallment,
-    resetInstallment,
-    deleteAllInstallments,
-    exportInstallments,
   } = useInstallments();
 
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'completed'>('all');
@@ -79,53 +74,67 @@ export default function Installments() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-foreground mb-2">Manajemen Cicilan</h1>
-            <p className="text-muted-foreground">Kelola dan pantau cicilan pembayaran Anda</p>
+            <h1 className="text-3xl font-bold text-foreground">Manajemen Cicilan</h1>
+            <p className="text-sm text-muted-foreground mt-1">Kelola dan pantau cicilan pembayaran Anda dengan mudah</p>
           </div>
-          <div className="flex gap-2">
-            <InstallmentMaintenance
-              installments={installments}
-              onDuplicate={duplicateInstallment}
-              onReset={resetInstallment}
-              onDeleteAll={deleteAllInstallments}
-              onExport={exportInstallments}
-            />
-            <InstallmentForm onSubmit={handleAddInstallment} />
-          </div>
+          <InstallmentForm onSubmit={handleAddInstallment} />
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4 border border-border">
-            <p className="text-sm text-muted-foreground mb-2">Total Cicilan</p>
-            <p className="text-3xl font-bold text-foreground">{totalInstallments}</p>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <Card className="p-6 border border-border bg-gradient-to-br from-slate-50 to-white hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Total Cicilan</p>
+                <p className="text-3xl font-bold text-foreground">{totalInstallments}</p>
+              </div>
+              <div className="text-4xl text-slate-200">📋</div>
+            </div>
           </Card>
-          <Card className="p-4 border border-border">
-            <p className="text-sm text-muted-foreground mb-2">Cicilan Aktif</p>
-            <p className="text-3xl font-bold text-primary">{activeInstallments}</p>
+          <Card className="p-6 border border-border bg-gradient-to-br from-blue-50 to-white hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Cicilan Aktif</p>
+                <p className="text-3xl font-bold text-primary">{activeInstallments}</p>
+              </div>
+              <div className="text-4xl text-blue-200">⚡</div>
+            </div>
           </Card>
-          <Card className="p-4 border border-border">
-            <p className="text-sm text-muted-foreground mb-2">Selesai</p>
-            <p className="text-3xl font-bold text-emerald-600">{completedInstallments}</p>
+          <Card className="p-6 border border-border bg-gradient-to-br from-emerald-50 to-white hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Selesai</p>
+                <p className="text-3xl font-bold text-emerald-600">{completedInstallments}</p>
+              </div>
+              <div className="text-4xl text-emerald-200">✓</div>
+            </div>
           </Card>
-          <Card className="p-4 border border-border">
-            <p className="text-sm text-muted-foreground mb-2">Sisa Pembayaran</p>
-            <p className="text-2xl font-bold text-amber-600">Rp {totalRemainingAmount.toLocaleString('id-ID')}</p>
+          <Card className="p-6 border border-border bg-gradient-to-br from-amber-50 to-white hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Sisa Pembayaran</p>
+                <p className="text-2xl font-bold text-amber-600">Rp {totalRemainingAmount.toLocaleString('id-ID')}</p>
+              </div>
+              <div className="text-4xl text-amber-200">💰</div>
+            </div>
           </Card>
         </div>
 
         {/* Upcoming Payments */}
         {upcomingPayments.length > 0 && (
-          <Card className="p-6 border border-border bg-blue-50">
-            <h2 className="text-lg font-semibold text-foreground mb-4">Pembayaran Mendatang</h2>
+          <Card className="p-6 border border-border bg-gradient-to-r from-blue-50 to-indigo-50 mb-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <span className="text-xl">📅</span>
+              Pembayaran Mendatang
+            </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {upcomingPayments.slice(0, 6).map((payment) => (
-                <div key={payment.id} className="bg-white p-3 rounded-lg border border-blue-200">
-                  <p className="font-medium text-foreground">{payment.installmentName}</p>
-                  <p className="text-sm text-muted-foreground">
+                <div key={payment.id} className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
+                  <p className="font-semibold text-foreground text-sm">{payment.installmentName}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
                     {new Date(payment.year, payment.month - 1).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
                   </p>
-                  <p className="font-semibold text-blue-600 mt-2">Rp {payment.amount.toLocaleString('id-ID')}</p>
+                  <p className="font-bold text-blue-600 mt-3 text-lg">Rp {payment.amount.toLocaleString('id-ID')}</p>
                 </div>
               ))}
             </div>
@@ -133,16 +142,16 @@ export default function Installments() {
         )}
 
         {/* Filter */}
-        <div className="flex items-center gap-4">
-          <span className="text-sm font-medium text-foreground">Filter:</span>
+        <div className="flex items-center gap-3 mb-6">
+          <span className="text-sm font-semibold text-foreground">Filter:</span>
           <div className="flex gap-2">
             {(['all', 'active', 'completed'] as const).map((status) => (
               <button
                 key={status}
                 onClick={() => setFilterStatus(status)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
                   filterStatus === status
-                    ? 'bg-primary text-primary-foreground'
+                    ? 'bg-primary text-primary-foreground shadow-sm'
                     : 'bg-secondary text-foreground hover:bg-secondary/80'
                 }`}
               >
@@ -154,7 +163,7 @@ export default function Installments() {
 
         {/* Installments List */}
         {filteredInstallments.length > 0 ? (
-          <div className="grid grid-cols-1 gap-6">
+          <div className="grid grid-cols-1 gap-4">
             {filteredInstallments.map((installment) => (
               <InstallmentCard
                 key={installment.id}
@@ -168,13 +177,16 @@ export default function Installments() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">
-              {installments.length === 0
-                ? 'Belum ada cicilan. Mulai dengan menambah cicilan baru!'
-                : 'Tidak ada cicilan dengan filter yang dipilih.'}
-            </p>
-          </div>
+          <Card className="p-12 border border-dashed border-border bg-slate-50">
+            <div className="text-center">
+              <div className="text-5xl mb-4">📭</div>
+              <p className="text-muted-foreground">
+                {installments.length === 0
+                  ? 'Belum ada cicilan. Mulai dengan menambah cicilan baru!'
+                  : 'Tidak ada cicilan dengan filter yang dipilih.'}
+              </p>
+            </div>
+          </Card>
         )}
       </div>
     </DashboardLayout>
