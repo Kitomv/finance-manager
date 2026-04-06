@@ -43,6 +43,11 @@ export default function Transactions() {
     setEditingTransaction(transaction);
   };
 
+  const handleUpdateTransaction = (id: string, data: Partial<Omit<Transaction, 'id' | 'timestamp'>>) => {
+    updateTransaction(id, data);
+    toast.success('Transaksi berhasil diperbarui');
+  };
+
   if (!isLoaded) {
     return (
       <DashboardLayout currentPage="transactions">
@@ -98,6 +103,7 @@ export default function Transactions() {
           transactions={filteredTransactions}
           onDelete={handleDeleteTransaction}
           onEdit={handleEditTransaction}
+          onUpdate={handleUpdateTransaction}
         />
       </div>
     </DashboardLayout>
