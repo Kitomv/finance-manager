@@ -4,12 +4,17 @@ import StatCard from '@/components/StatCard';
 import TransactionForm from '@/components/TransactionForm';
 import TransactionList from '@/components/TransactionList';
 import { useTransactions, Transaction } from '@/hooks/useTransactions';
+import { useInstallments } from '@/hooks/useInstallments';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
-import { Wallet, TrendingUp, TrendingDown } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, CreditCard } from 'lucide-react';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Link } from 'wouter';
 import { toast } from 'sonner';
 
 export default function Home() {
   const { transactions, isLoaded, addTransaction, deleteTransaction, getTotalIncome, getTotalExpense, getBalance } = useTransactions();
+  const { installments, getProgressPercentage, getUpcomingPayments } = useInstallments();
   const [chartData, setChartData] = useState<any[]>([]);
 
   // Generate chart data from transactions
@@ -50,6 +55,9 @@ export default function Home() {
     deleteTransaction(id);
     toast.success('Transaksi berhasil dihapus');
   };
+
+  const upcomingPayments = getUpcomingPayments();
+  const activeInstallments = installments.filter((i) => getProgressPercentage(i.id) < 100).length;
 
   if (!isLoaded) {
     return (
@@ -154,6 +162,34 @@ export default function Home() {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {/* Upcoming Installments */}
+        {upcomingPayments.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold text-foreground mb-4">Cicilan Mendatang</h2>
+            <Card className="p-6 border border-border bg-blue-50">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {upcomingPayments.slice(0, 4).map((payment) => (
+                  <div key={payment.id} className="bg-white p-4 rounded-lg border border-blue-200">
+                    <p className="font-medium text-foreground text-sm">{payment.installmentName}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {new Date(2024, payment.month - 1).toLocaleDateString('id-ID', { month: 'short', year: '2-digit' })}
+                    </p>
+                    <p className="font-bold text-blue-600 mt-2">Rp {payment.amount.toLocaleString('id-ID')}</p>
+                  </div>
+                ))}
+              </div>
+              <Link href="/installments">
+                <a className="inline-block mt-4">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    Lihat Semua Cicilan ({activeInstallments} aktif)
+                  </Button>
+                </a>
+              </Link>
+            </Card>
+          </div>
+        )}
 
         {/* Recent Transactions */}
         <div>

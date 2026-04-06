@@ -1,10 +1,10 @@
 import { ReactNode } from 'react';
-import { BarChart3, Settings, Home, TrendingUp, TrendingDown } from 'lucide-react';
+import { BarChart3, Settings, Home, TrendingUp, TrendingDown, CreditCard } from 'lucide-react';
 import { Link } from 'wouter';
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  currentPage?: 'dashboard' | 'transactions' | 'analytics' | 'settings';
+  currentPage?: 'dashboard' | 'transactions' | 'analytics' | 'installments' | 'settings';
 }
 
 export default function DashboardLayout({ children, currentPage = 'dashboard' }: DashboardLayoutProps) {
@@ -12,6 +12,7 @@ export default function DashboardLayout({ children, currentPage = 'dashboard' }:
     { id: 'dashboard', label: 'Dashboard', icon: Home, href: '/' },
     { id: 'transactions', label: 'Transaksi', icon: TrendingUp, href: '/transactions' },
     { id: 'analytics', label: 'Analitik', icon: BarChart3, href: '/analytics' },
+    { id: 'installments', label: 'Cicilan', icon: CreditCard, href: '/installments' },
     { id: 'settings', label: 'Pengaturan', icon: Settings, href: '/settings' },
   ];
 
