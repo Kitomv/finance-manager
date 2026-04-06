@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Users, Plus, Trash2, Edit2, Mail, Shield } from 'lucide-react';
+import { Users, Plus, Trash2, Edit2, Mail, Shield, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -27,6 +27,7 @@ export default function UserManagement() {
   const { users, createUser, deleteUser, updateUserAccessLevel, hasPermission, currentUser } = useAccessControl();
   const [newUsername, setNewUsername] = useState('');
   const [newEmail, setNewEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [newAccessLevel, setNewAccessLevel] = useState<AccessLevel>('user');
   const [editingUserId, setEditingUserId] = useState<string | null>(null);
   const [editAccessLevel, setEditAccessLevel] = useState<AccessLevel>('user');
@@ -47,8 +48,13 @@ export default function UserManagement() {
   }
 
   const handleCreateUser = () => {
-    if (!newUsername.trim() || !newEmail.trim()) {
-      toast.error('Username dan email harus diisi');
+    if (!newUsername.trim() || !newEmail.trim() || !newPassword.trim()) {
+      toast.error('Username, email, dan password harus diisi');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast.error('Password minimal 6 karakter');
       return;
     }
 
@@ -57,10 +63,11 @@ export default function UserManagement() {
       return;
     }
 
-    createUser(newUsername, newEmail, newAccessLevel);
+    createUser(newUsername, newEmail, newPassword, newAccessLevel);
     toast.success('User berhasil dibuat');
     setNewUsername('');
     setNewEmail('');
+    setNewPassword('');
     setNewAccessLevel('user');
     setIsOpen(false);
   };
@@ -158,6 +165,19 @@ export default function UserManagement() {
                     placeholder="Masukkan email"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-foreground block mb-2 flex items-center gap-2">
+                    <Lock className="w-4 h-4" />
+                    Password
+                  </label>
+                  <Input
+                    type="password"
+                    placeholder="Minimal 6 karakter"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
                   />
                 </div>
 

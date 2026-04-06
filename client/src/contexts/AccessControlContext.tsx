@@ -6,6 +6,7 @@ export interface User {
   id: string;
   username: string;
   email: string;
+  password: string;
   accessLevel: AccessLevel;
   createdAt: string;
 }
@@ -30,7 +31,8 @@ interface AccessControlContextType {
   users: User[];
   login: (username: string, password: string) => boolean;
   logout: () => void;
-  createUser: (username: string, email: string, accessLevel: AccessLevel) => void;
+  createUser: (username: string, email: string, password: string, accessLevel: AccessLevel) => void;
+  updateUserPassword: (userId: string, newPassword: string) => void;
   deleteUser: (userId: string) => void;
   updateUserAccessLevel: (userId: string, accessLevel: AccessLevel) => void;
   getPermissions: (accessLevel: AccessLevel) => Permissions;
@@ -105,6 +107,7 @@ export function AccessControlProvider({ children }: { children: React.ReactNode 
         id: '1',
         username: 'admin',
         email: 'admin@finance.local',
+        password: 'password',
         accessLevel: 'admin',
         createdAt: new Date().toISOString(),
       };
@@ -116,7 +119,7 @@ export function AccessControlProvider({ children }: { children: React.ReactNode 
   const login = (username: string, password: string): boolean => {
     // Simple password check (in production, use proper authentication)
     const user = users.find(u => u.username === username);
-    if (user && password === 'password') {
+    if (user && user.password === password) {
       setCurrentUser(user);
       localStorage.setItem('finance-manager-current-user', JSON.stringify(user));
       return true;
@@ -129,17 +132,33 @@ export function AccessControlProvider({ children }: { children: React.ReactNode 
     localStorage.removeItem('finance-manager-current-user');
   };
 
-  const createUser = (username: string, email: string, accessLevel: AccessLevel) => {
+  const createUser = (username: string, email: string, password: string, accessLevel: AccessLevel) => {
     const newUser: User = {
       id: Date.now().toString(),
       username,
       email,
+      password,
       accessLevel,
       createdAt: new Date().toISOString(),
     };
     const updatedUsers = [...users, newUser];
     setUsers(updatedUsers);
     localStorage.setItem('finance-manager-users', JSON.stringify(updatedUsers));
+  };
+
+  const updateUserPassword = (userId: string, newPassword: string) => {
+    const updatedUsers = users.map(u =>
+      u.id === userId ? { ...u, password: newPassword } : u
+    );
+    setUsers(updatedUsers);
+    localStorage.setItem('finance-manager-users', JSON.stringify(updatedUsers));
+
+    // Update current user if it's the same
+    if (currentUser?.id === userId) {
+      const updatedUser = { ...currentUser, password: newPassword };
+      setCurrentUser(updatedUser);
+      localStorage.setItem('finance-manager-current-user', JSON.stringify(updatedUser));
+    }
   };
 
   const deleteUser = (userId: string) => {
@@ -181,6 +200,7 @@ export function AccessControlProvider({ children }: { children: React.ReactNode 
         login,
         logout,
         createUser,
+        updateUserPassword,
         deleteUser,
         updateUserAccessLevel,
         getPermissions,
