@@ -2,6 +2,7 @@ import { useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import InstallmentForm from '@/components/InstallmentForm';
 import InstallmentCard from '@/components/InstallmentCard';
+import InstallmentMaintenance from '@/components/InstallmentMaintenance';
 import { useInstallments, Installment } from '@/hooks/useInstallments';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +20,10 @@ export default function Installments() {
     getRemainingAmount,
     getProgressPercentage,
     getUpcomingPayments,
+    duplicateInstallment,
+    resetInstallment,
+    deleteAllInstallments,
+    exportInstallments,
   } = useInstallments();
 
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'completed'>('all');
@@ -77,7 +82,16 @@ export default function Installments() {
             <h1 className="text-4xl font-bold text-foreground mb-2">Manajemen Cicilan</h1>
             <p className="text-muted-foreground">Kelola dan pantau cicilan pembayaran Anda</p>
           </div>
-          <InstallmentForm onSubmit={handleAddInstallment} />
+          <div className="flex gap-2">
+            <InstallmentMaintenance
+              installments={installments}
+              onDuplicate={duplicateInstallment}
+              onReset={resetInstallment}
+              onDeleteAll={deleteAllInstallments}
+              onExport={exportInstallments}
+            />
+            <InstallmentForm onSubmit={handleAddInstallment} />
+          </div>
         </div>
 
         {/* Summary Cards */}

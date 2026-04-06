@@ -174,6 +174,54 @@ export function useInstallments() {
     });
   };
 
+  const duplicateInstallment = (installment: Installment) => {
+    const newInstallment = addInstallment({
+      name: `${installment.name} (Duplikat)`,
+      totalAmount: installment.totalAmount,
+      monthlyAmount: installment.monthlyAmount,
+      totalMonths: installment.totalMonths,
+      startMonth: installment.startMonth,
+      startYear: installment.startYear,
+      description: installment.description,
+    });
+    return newInstallment;
+  };
+
+  const resetInstallment = (id: string) => {
+    setInstallments((prev) =>
+      prev.map((inst) => {
+        if (inst.id === id) {
+          const resetPayments = inst.payments.map((p) => ({
+            ...p,
+            isPaid: false,
+            paidDate: undefined,
+          }));
+          return {
+            ...inst,
+            payments: resetPayments,
+            completedAt: undefined,
+          };
+        }
+        return inst;
+      })
+    );
+  };
+
+  const deleteAllInstallments = () => {
+    setInstallments([]);
+  };
+
+  const exportInstallments = () => {
+    const dataStr = JSON.stringify(installments, null, 2);
+    const dataBlob = new Blob([dataStr], { type: 'application/json' });
+    const url = URL.createObjectURL(dataBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cicilan-${new Date().toISOString().split('T')[0]}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return {
     installments,
     isLoaded,
@@ -186,5 +234,9 @@ export function useInstallments() {
     getRemainingAmount,
     getProgressPercentage,
     getUpcomingPayments,
+    duplicateInstallment,
+    resetInstallment,
+    deleteAllInstallments,
+    exportInstallments,
   };
 }
