@@ -1,6 +1,7 @@
 import { ReactNode, useState } from 'react';
 import { BarChart3, Settings, Home, TrendingUp, TrendingDown, CreditCard, Menu, X } from 'lucide-react';
 import { useLocation } from 'wouter';
+import ThemeSwitcher from './ThemeSwitcher';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -70,6 +71,11 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
             );
           })}
         </nav>
+
+        {/* Theme Switcher */}
+        <div className="px-4 py-4 border-t border-sidebar-border flex justify-center">
+          <ThemeSwitcher />
+        </div>
       </aside>
 
       {/* Mobile Menu Overlay */}
@@ -144,7 +150,9 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
             </div>
             <span className="font-bold text-sidebar-foreground">Finance</span>
           </div>
-          <div className="w-10" />
+          <div className="flex items-center gap-2">
+            <ThemeSwitcher />
+          </div>
         </div>
 
         {/* Content Area */}

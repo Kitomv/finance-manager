@@ -40,6 +40,7 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider
         defaultTheme="light"
+        switchable
       >
         <NotificationProvider>
           <TooltipProvider>
