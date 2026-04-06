@@ -133,6 +133,18 @@ export function useSavings() {
     return Math.ceil(remaining / dailyAmount);
   };
 
+  const importSavings = (importedData: Saving[]) => {
+    setSavings((prev) => {
+      const existingIds = new Set(prev.map((s) => s.id));
+      const newSavings = importedData.filter(
+        (s) => !existingIds.has(s.id)
+      );
+      return [...newSavings, ...prev].sort(
+        (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
+      );
+    });
+  };
+
   return {
     savings,
     isLoaded,
@@ -149,5 +161,6 @@ export function useSavings() {
     getCompletedSavings,
     getActiveSavings,
     estimateDaysToTarget,
+    importSavings,
   };
 }

@@ -222,6 +222,18 @@ export function useInstallments() {
     URL.revokeObjectURL(url);
   };
 
+  const importInstallments = (importedData: Installment[]) => {
+    setInstallments((prev) => {
+      const existingIds = new Set(prev.map((i) => i.id));
+      const newInstallments = importedData.filter(
+        (i) => !existingIds.has(i.id)
+      );
+      return [...newInstallments, ...prev].sort(
+        (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
+      );
+    });
+  };
+
   return {
     installments,
     isLoaded,
@@ -238,5 +250,6 @@ export function useInstallments() {
     resetInstallment,
     deleteAllInstallments,
     exportInstallments,
+    importInstallments,
   };
 }
