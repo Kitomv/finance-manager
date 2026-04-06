@@ -68,7 +68,7 @@ export default function InstallmentForm({ onSubmit, isEdit = false }: Installmen
           {isEdit ? 'Edit Cicilan' : 'Tambah Cicilan'}
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-full sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEdit ? 'Edit Cicilan' : 'Tambah Cicilan Baru'}</DialogTitle>
           <DialogDescription>

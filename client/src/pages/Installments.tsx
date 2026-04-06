@@ -72,62 +72,62 @@ export default function Installments() {
     <DashboardLayout currentPage="installments">
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Manajemen Cicilan</h1>
-            <p className="text-sm text-muted-foreground mt-1">Kelola dan pantau cicilan pembayaran Anda dengan mudah</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Manajemen Cicilan</h1>
+            <p className="text-xs sm:text-sm text-muted-foreground mt-1">Kelola dan pantau cicilan pembayaran Anda dengan mudah</p>
           </div>
           <InstallmentForm onSubmit={handleAddInstallment} />
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="p-6 border border-border bg-gradient-to-br from-slate-50 to-white hover:shadow-md transition-shadow">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          <Card className="p-4 sm:p-6 border border-border bg-gradient-to-br from-slate-50 to-white hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Total Cicilan</p>
-                <p className="text-3xl font-bold text-foreground">{totalInstallments}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-foreground">{totalInstallments}</p>
               </div>
-              <div className="text-4xl text-slate-200">📋</div>
+              <div className="text-3xl sm:text-4xl text-slate-200">📋</div>
             </div>
           </Card>
-          <Card className="p-6 border border-border bg-gradient-to-br from-blue-50 to-white hover:shadow-md transition-shadow">
+          <Card className="p-4 sm:p-6 border border-border bg-gradient-to-br from-blue-50 to-white hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Cicilan Aktif</p>
-                <p className="text-3xl font-bold text-primary">{activeInstallments}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-primary">{activeInstallments}</p>
               </div>
-              <div className="text-4xl text-blue-200">⚡</div>
+              <div className="text-3xl sm:text-4xl text-blue-200">⚡</div>
             </div>
           </Card>
-          <Card className="p-6 border border-border bg-gradient-to-br from-emerald-50 to-white hover:shadow-md transition-shadow">
+          <Card className="p-4 sm:p-6 border border-border bg-gradient-to-br from-emerald-50 to-white hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Selesai</p>
-                <p className="text-3xl font-bold text-emerald-600">{completedInstallments}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-emerald-600">{completedInstallments}</p>
               </div>
-              <div className="text-4xl text-emerald-200">✓</div>
+              <div className="text-3xl sm:text-4xl text-emerald-200">✓</div>
             </div>
           </Card>
-          <Card className="p-6 border border-border bg-gradient-to-br from-amber-50 to-white hover:shadow-md transition-shadow">
+          <Card className="p-4 sm:p-6 border border-border bg-gradient-to-br from-amber-50 to-white hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Sisa Pembayaran</p>
-                <p className="text-2xl font-bold text-amber-600">Rp {totalRemainingAmount.toLocaleString('id-ID')}</p>
+                <p className="text-lg sm:text-2xl font-bold text-amber-600">Rp {totalRemainingAmount.toLocaleString('id-ID')}</p>
               </div>
-              <div className="text-4xl text-amber-200">💰</div>
+              <div className="text-3xl sm:text-4xl text-amber-200">💰</div>
             </div>
           </Card>
         </div>
 
         {/* Upcoming Payments */}
         {upcomingPayments.length > 0 && (
-          <Card className="p-6 border border-border bg-gradient-to-r from-blue-50 to-indigo-50 mb-6">
-            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-              <span className="text-xl">📅</span>
+          <Card className="p-4 sm:p-6 border border-border bg-gradient-to-r from-blue-50 to-indigo-50 mb-6">
+            <h2 className="text-base sm:text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <span className="text-lg sm:text-xl">📅</span>
               Pembayaran Mendatang
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {upcomingPayments.slice(0, 6).map((payment) => (
                 <div key={payment.id} className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
                   <p className="font-semibold text-foreground text-sm">{payment.installmentName}</p>
