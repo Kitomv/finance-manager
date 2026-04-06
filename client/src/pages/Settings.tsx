@@ -1,9 +1,10 @@
 import { useRef, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
+import { useAccessControl } from '@/contexts/AccessControlContext';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertCircle, Trash2, Download, Upload, History } from 'lucide-react';
+import { AlertCircle, Trash2, Download, Upload, History, Shield } from 'lucide-react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { useInstallments } from '@/hooks/useInstallments';
 import { useSavings } from '@/hooks/useSavings';
@@ -18,6 +19,7 @@ import {
 import { toast } from 'sonner';
 
 export default function Settings() {
+  const { hasPermission } = useAccessControl();
   const { transactions, importTransactions } = useTransactions();
   const { installments, importInstallments } = useInstallments();
   const { savings, importSavings } = useSavings();
@@ -223,10 +225,11 @@ export default function Settings() {
         {/* General Tab */}
         {activeTab === 'general' && (
           <div className="space-y-6">
-            {/* Data Management */}
-            <Card className="p-4 sm:p-6">
-              <h2 className="text-base sm:text-xl font-semibold text-foreground mb-4">Manajemen Data</h2>
-              <div className="space-y-4">
+            {/* Data Management - Only for Admin */}
+            {hasPermission('canExportData') || hasPermission('canImportData') || hasPermission('canClearData') ? (
+              <Card className="p-4 sm:p-6">
+                <h2 className="text-base sm:text-xl font-semibold text-foreground mb-4">Manajemen Data</h2>
+                <div className="space-y-4">
                 {/* Import Data */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-secondary rounded-lg">
                   <div>
@@ -290,6 +293,17 @@ export default function Settings() {
                 </div>
               </div>
             </Card>
+            ) : (
+              <Card className="p-4 sm:p-6 border-amber-200 bg-amber-50">
+                <div className="flex items-center gap-3">
+                  <Shield className="w-5 h-5 text-amber-600" />
+                  <div>
+                    <h3 className="font-medium text-amber-900">Akses Terbatas</h3>
+                    <p className="text-sm text-amber-700 mt-1">Anda tidak memiliki izin untuk mengakses fitur Manajemen Data.</p>
+                  </div>
+                </div>
+              </Card>
+            )}
 
             {/* App Info */}
             <Card className="p-4 sm:p-6">
