@@ -226,7 +226,7 @@ export default function Settings() {
         {activeTab === 'general' && (
           <div className="space-y-6">
             {/* Data Management - Only for Admin */}
-            {hasPermission('canExportData') || hasPermission('canImportData') || hasPermission('canClearData') ? (
+            {hasPermission('canExportData') && hasPermission('canImportData') && hasPermission('canClearData') ? (
               <Card className="p-4 sm:p-6">
                 <h2 className="text-base sm:text-xl font-semibold text-foreground mb-4">Manajemen Data</h2>
                 <div className="space-y-4">
