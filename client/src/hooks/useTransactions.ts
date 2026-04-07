@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useActivityLog } from './useActivityLog';
+import { trpc } from '@/lib/trpc';
 
 export interface Transaction {
   id: string;
@@ -8,7 +9,7 @@ export interface Transaction {
   category: string;
   description: string;
   date: string;
-  timestamp: number;
+  timestamp?: number;
 }
 
 const STORAGE_KEY = 'finance-manager-transactions';
@@ -16,10 +17,35 @@ const STORAGE_KEY = 'finance-manager-transactions';
 export function useTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [useDatabase, setUseDatabase] = useState(false);
   const { addLog } = useActivityLog();
 
-  // Load transactions from localStorage on mount
+  // Try to use tRPC queries
+  const { data: dbTransactions, isLoading: dbLoading } = trpc.transactions.list.useQuery(undefined, {
+    enabled: useDatabase,
+  });
+
+  const createMutation = trpc.transactions.create.useMutation();
+  const updateMutation = trpc.transactions.update.useMutation();
+  const deleteMutation = trpc.transactions.delete.useMutation();
+
+  // Load transactions from database or localStorage on mount
   useEffect(() => {
+    const checkDatabase = async () => {
+      try {
+        // Check if user is authenticated
+        const user = await trpc.auth.me.useQuery().data;
+        if (user) {
+          setUseDatabase(true);
+        }
+      } catch (error) {
+        console.log('Database not available, using localStorage');
+      }
+    };
+
+    checkDatabase();
+
+    // Load from localStorage as fallback
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
@@ -31,40 +57,100 @@ export function useTransactions() {
     setIsLoaded(true);
   }, []);
 
-  // Save transactions to localStorage whenever they change
+  // Update transactions when database data changes
   useEffect(() => {
-    if (isLoaded) {
+    if (useDatabase && dbTransactions) {
+      const formattedTransactions = dbTransactions.map((t: any) => ({
+        id: t.id,
+        type: t.type,
+        amount: t.amount,
+        category: t.category,
+        description: t.description || '',
+        date: t.date,
+        timestamp: t.createdAt?.getTime() || Date.now(),
+      }));
+      setTransactions(formattedTransactions);
+    }
+  }, [dbTransactions, useDatabase]);
+
+  // Save transactions to localStorage whenever they change (fallback)
+  useEffect(() => {
+    if (isLoaded && !useDatabase) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
     }
-  }, [transactions, isLoaded]);
+  }, [transactions, isLoaded, useDatabase]);
 
-  const addTransaction = (transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
+  const addTransaction = async (transaction: Omit<Transaction, 'id' | 'timestamp'>) => {
     const newTransaction: Transaction = {
       ...transaction,
       id: `${Date.now()}-${Math.random()}`,
       timestamp: Date.now(),
     };
-    setTransactions((prev) => [newTransaction, ...prev]);
-    addLog('transaction', 'create', `Transaksi ${transaction.type === 'income' ? 'pemasukan' : 'pengeluaran'} ditambahkan: Rp ${transaction.amount.toLocaleString('id-ID')}`, {
-      type: transaction.type,
-      amount: transaction.amount,
-      category: transaction.category,
-      description: transaction.description,
-    });
+
+    if (useDatabase) {
+      try {
+        await createMutation.mutateAsync({
+          type: transaction.type,
+          amount: transaction.amount,
+          category: transaction.category,
+          description: transaction.description,
+          date: transaction.date,
+        });
+      } catch (error) {
+        console.error('Failed to create transaction:', error);
+        // Fallback to localStorage
+        setTransactions((prev) => [newTransaction, ...prev]);
+      }
+    } else {
+      setTransactions((prev) => [newTransaction, ...prev]);
+      addLog('transaction', 'create', `Transaksi ${transaction.type === 'income' ? 'pemasukan' : 'pengeluaran'} ditambahkan: Rp ${transaction.amount.toLocaleString('id-ID')}`, {
+        type: transaction.type,
+        amount: transaction.amount,
+        category: transaction.category,
+        description: transaction.description,
+      });
+    }
+
     return newTransaction;
   };
 
-  const updateTransaction = (id: string, updates: Partial<Omit<Transaction, 'id' | 'timestamp'>>) => {
-    setTransactions((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
-    );
-    addLog('transaction', 'update', `Transaksi diperbarui: ${updates.description || 'Rp ' + updates.amount?.toLocaleString('id-ID')}`, updates);
+  const updateTransaction = async (id: string, updates: Partial<Omit<Transaction, 'id' | 'timestamp'>>) => {
+    if (useDatabase) {
+      try {
+        await updateMutation.mutateAsync({
+          id,
+          ...updates,
+        });
+      } catch (error) {
+        console.error('Failed to update transaction:', error);
+        // Fallback to localStorage
+        setTransactions((prev) =>
+          prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
+        );
+      }
+    } else {
+      setTransactions((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
+      );
+      addLog('transaction', 'update', `Transaksi diperbarui: ${updates.description || 'Rp ' + updates.amount?.toLocaleString('id-ID')}`, updates);
+    }
   };
 
-  const deleteTransaction = (id: string) => {
+  const deleteTransaction = async (id: string) => {
     const transaction = transactions.find((t) => t.id === id);
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
-    addLog('transaction', 'delete', `Transaksi dihapus: ${transaction?.description}`, { id });
+    
+    if (useDatabase) {
+      try {
+        await deleteMutation.mutateAsync({ id });
+      } catch (error) {
+        console.error('Failed to delete transaction:', error);
+        // Fallback to localStorage
+        setTransactions((prev) => prev.filter((t) => t.id !== id));
+      }
+    } else {
+      setTransactions((prev) => prev.filter((t) => t.id !== id));
+      addLog('transaction', 'delete', `Transaksi dihapus: ${transaction?.description}`, { id });
+    }
   };
 
   const getTotalIncome = () => {
@@ -104,7 +190,7 @@ export function useTransactions() {
 
   return {
     transactions,
-    isLoaded,
+    isLoaded: isLoaded && (!useDatabase || !dbLoading),
     addTransaction,
     updateTransaction,
     deleteTransaction,

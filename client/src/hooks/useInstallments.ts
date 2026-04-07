@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
+import { trpc } from '@/lib/trpc';
 
 export interface InstallmentPayment {
   id: string;
   month: number;
   year: number;
   amount: number;
-  isPaid: boolean;
+  isPaid: boolean | number;
   paidDate?: string;
 }
 
@@ -14,12 +15,13 @@ export interface Installment {
   name: string;
   totalAmount: number;
   monthlyAmount: number;
-  totalMonths: number;
+  totalMonths?: number;
+  durationMonths?: number;
   startMonth: number;
   startYear: number;
-  description: string;
-  payments: InstallmentPayment[];
-  createdAt: number;
+  description?: string;
+  payments?: InstallmentPayment[];
+  createdAt?: number;
   completedAt?: number;
 }
 
@@ -28,9 +30,34 @@ const STORAGE_KEY = 'finance-manager-installments';
 export function useInstallments() {
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [useDatabase, setUseDatabase] = useState(false);
 
-  // Load installments from localStorage on mount
+  // Try to use tRPC queries
+  const { data: dbInstallments, isLoading: dbLoading } = trpc.installments.list.useQuery(undefined, {
+    enabled: useDatabase,
+  });
+
+  const createMutation = trpc.installments.create.useMutation();
+  const deleteMutation = trpc.installments.delete.useMutation();
+  const paymentToggleMutation = trpc.installments.payments.toggle.useMutation();
+
+  // Load installments from database or localStorage on mount
   useEffect(() => {
+    const checkDatabase = async () => {
+      try {
+        // Check if user is authenticated
+        const user = await trpc.auth.me.useQuery().data;
+        if (user) {
+          setUseDatabase(true);
+        }
+      } catch (error) {
+        console.log('Database not available, using localStorage');
+      }
+    };
+
+    checkDatabase();
+
+    // Load from localStorage as fallback
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
@@ -42,17 +69,39 @@ export function useInstallments() {
     setIsLoaded(true);
   }, []);
 
-  // Save installments to localStorage whenever they change
+  // Update installments when database data changes
   useEffect(() => {
-    if (isLoaded) {
+    if (useDatabase && dbInstallments) {
+      const formattedInstallments = dbInstallments.map((inst: any) => ({
+        id: inst.id,
+        name: inst.name,
+        totalAmount: inst.totalAmount,
+        monthlyAmount: inst.monthlyAmount,
+        totalMonths: inst.durationMonths,
+        durationMonths: inst.durationMonths,
+        startMonth: inst.startMonth,
+        startYear: inst.startYear,
+        description: '',
+        payments: [],
+        createdAt: inst.createdAt?.getTime() || Date.now(),
+      }));
+      setInstallments(formattedInstallments);
+    }
+  }, [dbInstallments, useDatabase]);
+
+  // Save installments to localStorage whenever they change (fallback)
+  useEffect(() => {
+    if (isLoaded && !useDatabase) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(installments));
     }
-  }, [installments, isLoaded]);
+  }, [installments, isLoaded, useDatabase]);
 
-  const addInstallment = (data: Omit<Installment, 'id' | 'createdAt' | 'payments'>) => {
-    // Generate payment schedule
+  const addInstallment = async (data: Omit<Installment, 'id' | 'createdAt' | 'payments'>) => {
+    const totalMonths = data.totalMonths || data.durationMonths || 12;
+    
+    // Generate payment schedule for localStorage
     const payments: InstallmentPayment[] = [];
-    for (let i = 0; i < data.totalMonths; i++) {
+    for (let i = 0; i < totalMonths; i++) {
       const month = (data.startMonth + i - 1) % 12 + 1;
       const year = data.startYear + Math.floor((data.startMonth + i - 1) / 12);
       payments.push({
@@ -69,9 +118,28 @@ export function useInstallments() {
       id: `${Date.now()}-${Math.random()}`,
       createdAt: Date.now(),
       payments,
+      totalMonths,
     };
 
-    setInstallments((prev) => [newInstallment, ...prev]);
+    if (useDatabase) {
+      try {
+        await createMutation.mutateAsync({
+          name: data.name,
+          totalAmount: data.totalAmount,
+          monthlyAmount: data.monthlyAmount,
+          startMonth: data.startMonth,
+          startYear: data.startYear,
+          durationMonths: totalMonths,
+        });
+      } catch (error) {
+        console.error('Failed to create installment:', error);
+        // Fallback to localStorage
+        setInstallments((prev) => [newInstallment, ...prev]);
+      }
+    } else {
+      setInstallments((prev) => [newInstallment, ...prev]);
+    }
+
     return newInstallment;
   };
 
@@ -81,60 +149,92 @@ export function useInstallments() {
     );
   };
 
-  const deleteInstallment = (id: string) => {
-    setInstallments((prev) => prev.filter((inst) => inst.id !== id));
+  const deleteInstallment = async (id: string) => {
+    if (useDatabase) {
+      try {
+        await deleteMutation.mutateAsync({ id });
+      } catch (error) {
+        console.error('Failed to delete installment:', error);
+        // Fallback to localStorage
+        setInstallments((prev) => prev.filter((inst) => inst.id !== id));
+      }
+    } else {
+      setInstallments((prev) => prev.filter((inst) => inst.id !== id));
+    }
   };
 
-  const markPaymentAsPaid = (installmentId: string, paymentId: string) => {
-    setInstallments((prev) =>
-      prev.map((inst) => {
-        if (inst.id === installmentId) {
-          const updatedPayments = inst.payments.map((p) =>
-            p.id === paymentId
-              ? { ...p, isPaid: true, paidDate: new Date().toISOString().split('T')[0] }
-              : p
-          );
+  const markPaymentAsPaid = async (installmentId: string, paymentId: string) => {
+    if (useDatabase) {
+      try {
+        await paymentToggleMutation.mutateAsync({
+          paymentId,
+          isPaid: 1,
+        });
+      } catch (error) {
+        console.error('Failed to mark payment as paid:', error);
+      }
+    } else {
+      setInstallments((prev) =>
+        prev.map((inst) => {
+          if (inst.id === installmentId) {
+            const updatedPayments = inst.payments?.map((p) =>
+              p.id === paymentId
+                ? { ...p, isPaid: true, paidDate: new Date().toISOString().split('T')[0] }
+                : p
+            ) || [];
 
-          // Check if all payments are paid
-          const allPaid = updatedPayments.every((p) => p.isPaid);
-          return {
-            ...inst,
-            payments: updatedPayments,
-            completedAt: allPaid ? Date.now() : inst.completedAt,
-          };
-        }
-        return inst;
-      })
-    );
+            // Check if all payments are paid
+            const allPaid = updatedPayments.every((p) => p.isPaid);
+            return {
+              ...inst,
+              payments: updatedPayments,
+              completedAt: allPaid ? Date.now() : inst.completedAt,
+            };
+          }
+          return inst;
+        })
+      );
+    }
   };
 
-  const markPaymentAsUnpaid = (installmentId: string, paymentId: string) => {
-    setInstallments((prev) =>
-      prev.map((inst) => {
-        if (inst.id === installmentId) {
-          const updatedPayments = inst.payments.map((p) =>
-            p.id === paymentId
-              ? { ...p, isPaid: false, paidDate: undefined }
-              : p
-          );
+  const markPaymentAsUnpaid = async (installmentId: string, paymentId: string) => {
+    if (useDatabase) {
+      try {
+        await paymentToggleMutation.mutateAsync({
+          paymentId,
+          isPaid: 0,
+        });
+      } catch (error) {
+        console.error('Failed to mark payment as unpaid:', error);
+      }
+    } else {
+      setInstallments((prev) =>
+        prev.map((inst) => {
+          if (inst.id === installmentId) {
+            const updatedPayments = inst.payments?.map((p) =>
+              p.id === paymentId
+                ? { ...p, isPaid: false, paidDate: undefined }
+                : p
+            ) || [];
 
-          return {
-            ...inst,
-            payments: updatedPayments,
-            completedAt: undefined,
-          };
-        }
-        return inst;
-      })
-    );
+            return {
+              ...inst,
+              payments: updatedPayments,
+              completedAt: undefined,
+            };
+          }
+          return inst;
+        })
+      );
+    }
   };
 
   const getTotalPaidAmount = (installmentId: string) => {
     const installment = installments.find((i) => i.id === installmentId);
     if (!installment) return 0;
     return installment.payments
-      .filter((p) => p.isPaid)
-      .reduce((sum, p) => sum + p.amount, 0);
+      ?.filter((p) => p.isPaid)
+      .reduce((sum, p) => sum + p.amount, 0) || 0;
   };
 
   const getRemainingAmount = (installmentId: string) => {
@@ -146,8 +246,9 @@ export function useInstallments() {
   const getProgressPercentage = (installmentId: string) => {
     const installment = installments.find((i) => i.id === installmentId);
     if (!installment) return 0;
-    const paidCount = installment.payments.filter((p) => p.isPaid).length;
-    return Math.round((paidCount / installment.totalMonths) * 100);
+    const totalMonths = installment.totalMonths || installment.durationMonths || 12;
+    const paidCount = installment.payments?.filter((p) => p.isPaid).length || 0;
+    return Math.round((paidCount / totalMonths) * 100);
   };
 
   const getUpcomingPayments = () => {
@@ -158,7 +259,7 @@ export function useInstallments() {
     const upcoming: Array<InstallmentPayment & { installmentName: string }> = [];
 
     installments.forEach((inst) => {
-      inst.payments.forEach((payment) => {
+      inst.payments?.forEach((payment) => {
         if (!payment.isPaid && (payment.year > currentYear || (payment.year === currentYear && payment.month >= currentMonth))) {
           upcoming.push({
             ...payment,
@@ -191,11 +292,11 @@ export function useInstallments() {
     setInstallments((prev) =>
       prev.map((inst) => {
         if (inst.id === id) {
-          const resetPayments = inst.payments.map((p) => ({
+          const resetPayments = inst.payments?.map((p) => ({
             ...p,
             isPaid: false,
             paidDate: undefined,
-          }));
+          })) || [];
           return {
             ...inst,
             payments: resetPayments,
@@ -236,7 +337,7 @@ export function useInstallments() {
 
   return {
     installments,
-    isLoaded,
+    isLoaded: isLoaded && (!useDatabase || !dbLoading),
     addInstallment,
     updateInstallment,
     deleteInstallment,

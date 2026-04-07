@@ -55,7 +55,7 @@ export default function InstallmentMaintenance({
     }
   };
 
-  const completedCount = installments.filter((i) => i.payments.every((p) => p.isPaid)).length;
+  const completedCount = installments.filter((i) => i.payments?.every((p) => p.isPaid)).length;
   const activeCount = installments.length - completedCount;
 
   return (
@@ -142,7 +142,7 @@ export default function InstallmentMaintenance({
             {installments.length > 0 ? (
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {installments.map((inst) => {
-                  const paidCount = inst.payments.filter((p) => p.isPaid).length;
+                  const paidCount = inst.payments?.filter((p) => p.isPaid).length || 0;
                   if (paidCount === 0) return null;
                   return (
                     <div

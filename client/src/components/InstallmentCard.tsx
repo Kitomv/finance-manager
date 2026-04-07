@@ -23,7 +23,7 @@ export default function InstallmentCard({
   onMarkPayment,
 }: InstallmentCardProps) {
   const [expanded, setExpanded] = useState(false);
-  const paidCount = installment.payments.filter((p) => p.isPaid).length;
+  const paidCount = installment.payments?.filter((p) => p.isPaid).length || 0;
   const isCompleted = progress === 100;
 
   return (
@@ -116,7 +116,7 @@ export default function InstallmentCard({
         {expanded && (
           <div className="space-y-2 border-t border-border pt-4">
             <div className="grid grid-cols-1 gap-2 max-h-96 overflow-y-auto">
-              {installment.payments.map((payment) => {
+              {installment.payments?.map((payment) => {
                 const monthName = new Date(payment.year, payment.month - 1).toLocaleDateString('id-ID', {
                   month: 'short',
                   year: 'numeric',
