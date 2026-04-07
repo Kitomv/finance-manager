@@ -13,6 +13,10 @@ import { Link } from 'wouter';
 import { toast } from 'sonner';
 
 export default function Home() {
+  // The userAuth hooks provides authentication state
+  // To implement login/logout functionality, simply call logout() or redirect to getLoginUrl()
+  let { user, loading, error, isAuthenticated, logout } = useAuth();
+
   const { transactions, isLoaded, addTransaction, deleteTransaction, getTotalIncome, getTotalExpense, getBalance } = useTransactions();
   const { installments, getProgressPercentage, getUpcomingPayments } = useInstallments();
   const [chartData, setChartData] = useState<any[]>([]);

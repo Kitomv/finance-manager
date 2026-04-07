@@ -17,7 +17,6 @@ import Budget from "./pages/Budget";
 import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
 
-
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { currentUser } = useAccessControl();
   
