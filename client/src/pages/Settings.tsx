@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
 import { useAccessControl } from '@/contexts/AccessControlContext';
+import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -304,6 +305,15 @@ export default function Settings() {
                 </div>
               </Card>
             )}
+
+            {/* Security */}
+            <Card className="p-4 sm:p-6">
+              <h2 className="text-base sm:text-xl font-semibold text-foreground mb-4">Keamanan</h2>
+              <div className="space-y-4">
+                <p className="text-sm text-muted-foreground">Kelola pengaturan keamanan akun Anda</p>
+                <ChangePasswordDialog />
+              </div>
+            </Card>
 
             {/* App Info */}
             <Card className="p-4 sm:p-6">

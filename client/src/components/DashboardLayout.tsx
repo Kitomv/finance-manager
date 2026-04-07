@@ -7,7 +7,7 @@ import { Button } from './ui/button';
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  currentPage?: 'dashboard' | 'transactions' | 'analytics' | 'installments' | 'savings' | 'settings';
+  currentPage?: 'dashboard' | 'transactions' | 'analytics' | 'installments' | 'savings' | 'budget' | 'settings';
 }
 
 export default function DashboardLayout({ children, currentPage }: DashboardLayoutProps) {
@@ -22,6 +22,7 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
     if (location === '/analytics') return 'analytics';
     if (location === '/installments') return 'installments';
     if (location === '/savings') return 'savings';
+    if (location === '/budget') return 'budget';
     if (location === '/settings') return 'settings';
     return 'dashboard';
   };
@@ -34,6 +35,7 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
     { id: 'analytics', label: 'Analitik', icon: BarChart3, href: '/analytics' },
     { id: 'installments', label: 'Cicilan', icon: CreditCard, href: '/installments' },
     { id: 'savings', label: 'Tabungan', icon: TrendingDown, href: '/savings' },
+    { id: 'budget', label: 'Budget', icon: BarChart3, href: '/budget' },
     { id: 'settings', label: 'Pengaturan', icon: Settings, href: '/settings' },
   ];
 

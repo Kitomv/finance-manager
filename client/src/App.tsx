@@ -13,6 +13,7 @@ import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Installments from "./pages/Installments";
 import Savings from "./pages/Savings";
+import Budget from "./pages/Budget";
 import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
 
@@ -46,6 +47,7 @@ function Router() {
       <Route path="/analytics" component={Analytics} />
       <Route path="/installments" component={Installments} />
       <Route path="/savings" component={Savings} />
+      <Route path="/budget" component={Budget} />
       <Route path="/settings" component={Settings} />
       <Route path="/user-management" component={UserManagement} />
       <Route path="/404" component={NotFound} />
