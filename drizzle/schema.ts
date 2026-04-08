@@ -86,8 +86,8 @@ export const budgets = mysqlTable("budgets", {
 export const activityLogs = mysqlTable("activityLogs", {
   id: varchar("id", { length: 64 }).primaryKey(),
   userId: int("userId").notNull(),
-  type: mysqlEnum("type", ["transaction", "installment", "saving"]).notNull(),
-  action: mysqlEnum("action", ["create", "update", "delete"]).notNull(),
+  type: mysqlEnum("type", ["transaction", "installment", "saving", "budget", "backup"]).notNull(),
+  action: mysqlEnum("action", ["create", "update", "delete", "restore"]).notNull(),
   description: text("description"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });

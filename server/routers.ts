@@ -4,6 +4,7 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
+import * as cloudBackup from "./cloudBackup";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -397,6 +398,71 @@ export const appRouter = router({
       const user = ctx.user;
       if (!user || !user.id) throw new Error("User not found");
       return await db.getUserActivityLogs(user.id);
+    }),
+  }),
+
+  // Cloud Backup Routers
+  backup: router({
+    create: protectedProcedure.mutation(async ({ ctx }) => {
+      const user = ctx.user;
+      if (!user || !user.id) throw new Error("User not found");
+      
+      try {
+        const result = await cloudBackup.createCloudBackup(user.id);
+        
+        // Log backup activity
+        await db.createActivityLog({
+          id: `${Date.now()}-${Math.random()}`,
+          userId: user.id,
+          type: 'backup',
+          action: 'create',
+          description: `Cloud backup dibuat: ${result.metadata.recordCounts.transactions} transaksi, ${result.metadata.recordCounts.installments} cicilan`,
+        });
+        
+        return result;
+      } catch (error) {
+        console.error('[Backup] Failed to create backup:', error);
+        throw new Error('Gagal membuat backup');
+      }
+    }),
+
+    restore: protectedProcedure
+      .input(z.object({
+        backupKey: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const user = ctx.user;
+        if (!user || !user.id) throw new Error("User not found");
+        
+        try {
+          const backupData = await cloudBackup.restoreCloudBackup(user.id, input.backupKey);
+          
+          // Log restore activity
+          await db.createActivityLog({
+            id: `${Date.now()}-${Math.random()}`,
+            userId: user.id,
+            type: 'backup',
+            action: 'restore',
+            description: `Cloud backup di-restore: ${backupData.metadata.recordCounts.transactions} transaksi, ${backupData.metadata.recordCounts.installments} cicilan`,
+          });
+          
+          return { success: true, data: backupData };
+        } catch (error) {
+          console.error('[Backup] Failed to restore backup:', error);
+          throw new Error('Gagal me-restore backup');
+        }
+      }),
+
+    list: protectedProcedure.query(async ({ ctx }) => {
+      const user = ctx.user;
+      if (!user || !user.id) throw new Error("User not found");
+      
+      try {
+        return await cloudBackup.listUserBackups(user.id);
+      } catch (error) {
+        console.error('[Backup] Failed to list backups:', error);
+        return [];
+      }
     }),
   }),
 });

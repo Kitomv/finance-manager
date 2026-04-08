@@ -10,6 +10,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { useInstallments } from '@/hooks/useInstallments';
 import { useSavings } from '@/hooks/useSavings';
 import { useActivityLog } from '@/hooks/useActivityLog';
+import CloudBackupManager from '@/components/CloudBackupManager';
 import {
   Select,
   SelectContent,
@@ -26,7 +27,7 @@ export default function Settings() {
   const { savings, importSavings } = useSavings();
   const { logs, getRecentLogs, getLogsByType, getLogsByAction, clearLogs, exportLogs } = useActivityLog();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState<'general' | 'activity'>('general');
+  const [activeTab, setActiveTab] = useState<'general' | 'activity' | 'backup'>('general');
   const [filterType, setFilterType] = useState<'all' | 'transaction' | 'installment' | 'saving'>('all');
   const [filterAction, setFilterAction] = useState<'all' | 'create' | 'update' | 'delete'>('all');
 
@@ -220,6 +221,17 @@ export default function Settings() {
           >
             <History className="w-4 h-4" />
             Log Aktivitas
+          </button>
+          <button
+            onClick={() => setActiveTab('backup')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors flex items-center gap-2 ${
+              activeTab === 'backup'
+                ? 'border-primary text-primary'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Download className="w-4 h-4" />
+            Cloud Backup
           </button>
         </div>
 
@@ -498,6 +510,13 @@ export default function Settings() {
                 Menampilkan {filteredLogs.length} dari {logs.length} log aktivitas
               </div>
             )}
+          </div>
+        )}
+
+        {/* Backup Tab */}
+        {activeTab === 'backup' && (
+          <div className="space-y-6">
+            <CloudBackupManager />
           </div>
         )}
       </div>

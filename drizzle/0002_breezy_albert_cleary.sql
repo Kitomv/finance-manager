@@ -1,0 +1,2 @@
+ALTER TABLE `activityLogs` MODIFY COLUMN `type` enum('transaction','installment','saving','budget','backup') NOT NULL;--> statement-breakpoint
+ALTER TABLE `activityLogs` MODIFY COLUMN `action` enum('create','update','delete','restore') NOT NULL;

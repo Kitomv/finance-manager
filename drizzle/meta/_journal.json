@@ -15,6 +15,13 @@
       "when": 1775545097484,
       "tag": "0001_violet_micromacro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1775640888861,
+      "tag": "0002_breezy_albert_cleary",
+      "breakpoints": true
     }
   ]
 }
