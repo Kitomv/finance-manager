@@ -4,7 +4,7 @@ import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { BarChart3, AlertCircle } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Login() {
@@ -84,17 +84,7 @@ export default function Login() {
             </Button>
           </form>
 
-          {/* Demo Credentials */}
-          <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="flex gap-3">
-              <AlertCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <div className="text-sm text-blue-900 dark:text-blue-100">
-                <p className="font-semibold mb-2">Demo Credentials:</p>
-                <p>Username: <span className="font-mono bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">admin</span></p>
-                <p>Password: <span className="font-mono bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">password</span></p>
-              </div>
-            </div>
-          </div>
+
         </Card>
 
         {/* Footer */}
