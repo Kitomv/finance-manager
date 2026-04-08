@@ -25,7 +25,7 @@ export default function Settings() {
   const { transactions, importTransactions } = useTransactions();
   const { installments, importInstallments } = useInstallments();
   const { savings, importSavings } = useSavings();
-  const { logs, getRecentLogs, getLogsByType, getLogsByAction, clearLogs, exportLogs } = useActivityLog();
+  const { logs, getRecentLogs, getLogsByType, getLogsByAction, exportLogs } = useActivityLog();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeTab, setActiveTab] = useState<'general' | 'activity' | 'backup'>('general');
   const [filterType, setFilterType] = useState<'all' | 'transaction' | 'installment' | 'saving'>('all');
@@ -122,13 +122,6 @@ export default function Settings() {
     // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
-    }
-  };
-
-  const handleClearLogs = () => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus semua log aktivitas? Tindakan ini tidak dapat dibatalkan.')) {
-      clearLogs();
-      toast.success('Semua log aktivitas berhasil dihapus');
     }
   };
 
@@ -449,14 +442,7 @@ export default function Settings() {
                   <Download className="w-4 h-4" />
                   Ekspor
                 </Button>
-                <Button
-                  onClick={handleClearLogs}
-                  variant="destructive"
-                  className="gap-2 flex-1 sm:flex-none text-xs sm:text-sm"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  Hapus Semua
-                </Button>
+
               </div>
             </div>
 
@@ -481,7 +467,7 @@ export default function Settings() {
                       {filteredLogs.map((log) => (
                         <tr key={log.id} className="border-b border-border hover:bg-secondary/50 transition-colors">
                           <td className="px-3 sm:px-4 py-3 text-xs sm:text-sm font-medium text-foreground whitespace-nowrap">
-                            {new Date(log.timestamp).toLocaleString('id-ID')}
+                            {new Date(log.createdAt).toLocaleString('id-ID')}
                           </td>
                           <td className="px-3 sm:px-4 py-3">
                             <Badge className={getTypeColor(log.type)} variant="outline">

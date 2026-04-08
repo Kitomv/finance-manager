@@ -18,7 +18,6 @@ export function useTransactions() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [useDatabase, setUseDatabase] = useState(false);
-  const { addLog } = useActivityLog();
 
   // Try to use tRPC queries
   const { data: dbTransactions, isLoading: dbLoading } = trpc.transactions.list.useQuery(undefined, {
@@ -103,12 +102,6 @@ export function useTransactions() {
       }
     } else {
       setTransactions((prev) => [newTransaction, ...prev]);
-      addLog('transaction', 'create', `Transaksi ${transaction.type === 'income' ? 'pemasukan' : 'pengeluaran'} ditambahkan: Rp ${transaction.amount.toLocaleString('id-ID')}`, {
-        type: transaction.type,
-        amount: transaction.amount,
-        category: transaction.category,
-        description: transaction.description,
-      });
     }
 
     return newTransaction;
@@ -132,7 +125,6 @@ export function useTransactions() {
       setTransactions((prev) =>
         prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
       );
-      addLog('transaction', 'update', `Transaksi diperbarui: ${updates.description || 'Rp ' + updates.amount?.toLocaleString('id-ID')}`, updates);
     }
   };
 
@@ -149,7 +141,6 @@ export function useTransactions() {
       }
     } else {
       setTransactions((prev) => prev.filter((t) => t.id !== id));
-      addLog('transaction', 'delete', `Transaksi dihapus: ${transaction?.description}`, { id });
     }
   };
 

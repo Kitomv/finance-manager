@@ -1,85 +1,69 @@
-import { useState, useEffect } from 'react';
+import { trpc } from '@/lib/trpc';
+import { useMemo } from 'react';
 
 export interface ActivityLog {
   id: string;
-  timestamp: number;
-  type: 'transaction' | 'installment' | 'saving';
-  action: 'create' | 'update' | 'delete';
+  userId: number;
+  type: 'transaction' | 'installment' | 'saving' | 'budget' | 'backup';
+  action: 'create' | 'update' | 'delete' | 'restore';
   description: string;
-  details: Record<string, any>;
+  createdAt: Date;
 }
 
-const STORAGE_KEY = 'finance-manager-activity-log';
-const MAX_LOGS = 500; // Limit to prevent localStorage from getting too large
-
+/**
+ * Hook untuk mengakses activity logs dari database
+ * Menggantikan localStorage-based activity logging
+ */
 export function useActivityLog() {
-  const [logs, setLogs] = useState<ActivityLog[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  // Fetch activity logs dari database via tRPC
+  const { data: logs = [], isLoading } = trpc.activityLogs.list.useQuery();
 
-  // Load logs from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setLogs(JSON.parse(stored));
-      } catch (error) {
-        console.error('Failed to parse activity logs from localStorage:', error);
-      }
-    }
-    setIsLoaded(true);
-  }, []);
+  // Convert database logs to frontend format
+  const formattedLogs = useMemo(() => {
+    return (logs || []).map(log => ({
+      ...log,
+      createdAt: new Date(log.createdAt),
+    }));
+  }, [logs]);
 
-  // Save logs to localStorage whenever they change
-  useEffect(() => {
-    if (isLoaded) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(logs));
-    }
-  }, [logs, isLoaded]);
+  /**
+   * Get logs by type
+   */
+  const getLogsByType = (type: 'transaction' | 'installment' | 'saving' | 'budget' | 'backup') => {
+    return formattedLogs.filter((log) => log.type === type);
+  };
 
-  const addLog = (
-    type: 'transaction' | 'installment' | 'saving',
-    action: 'create' | 'update' | 'delete',
-    description: string,
-    details: Record<string, any> = {}
-  ) => {
-    const newLog: ActivityLog = {
-      id: `${Date.now()}-${Math.random()}`,
-      timestamp: Date.now(),
-      type,
-      action,
-      description,
-      details,
-    };
+  /**
+   * Get logs by action
+   */
+  const getLogsByAction = (action: 'create' | 'update' | 'delete' | 'restore') => {
+    return formattedLogs.filter((log) => log.action === action);
+  };
 
-    setLogs((prev) => {
-      const updated = [newLog, ...prev];
-      // Keep only the most recent MAX_LOGS entries
-      return updated.slice(0, MAX_LOGS);
+  /**
+   * Get logs by date range
+   */
+  const getLogsByDateRange = (startDate: Date, endDate: Date) => {
+    const startTime = startDate.getTime();
+    const endTime = endDate.getTime();
+    return formattedLogs.filter((log) => {
+      const logTime = log.createdAt.getTime();
+      return logTime >= startTime && logTime <= endTime;
     });
   };
 
-  const clearLogs = () => {
-    setLogs([]);
-  };
-
-  const getLogsByType = (type: 'transaction' | 'installment' | 'saving') => {
-    return logs.filter((log) => log.type === type);
-  };
-
-  const getLogsByAction = (action: 'create' | 'update' | 'delete') => {
-    return logs.filter((log) => log.action === action);
-  };
-
-  const getLogsByDateRange = (startDate: number, endDate: number) => {
-    return logs.filter((log) => log.timestamp >= startDate && log.timestamp <= endDate);
-  };
-
+  /**
+   * Get recent logs
+   */
   const getRecentLogs = (limit: number = 50) => {
-    return logs.slice(0, limit);
+    return formattedLogs.slice(0, limit);
   };
 
+  /**
+   * Export logs as JSON
+   */
   const exportLogs = () => {
-    const dataStr = JSON.stringify(logs, null, 2);
+    const dataStr = JSON.stringify(formattedLogs, null, 2);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
     const link = document.createElement('a');
@@ -90,10 +74,8 @@ export function useActivityLog() {
   };
 
   return {
-    logs,
-    isLoaded,
-    addLog,
-    clearLogs,
+    logs: formattedLogs,
+    isLoaded: !isLoading,
     getLogsByType,
     getLogsByAction,
     getLogsByDateRange,

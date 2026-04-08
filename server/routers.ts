@@ -5,6 +5,7 @@ import { publicProcedure, router, protectedProcedure } from "./_core/trpc";
 import { z } from "zod";
 import * as db from "./db";
 import * as cloudBackup from "./cloudBackup";
+import * as activityLogger from "./activityLogger";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -48,14 +49,12 @@ export const appRouter = router({
         
         await db.createTransaction(transaction);
         
-        // Log activity
-        await db.createActivityLog({
-          id: `${Date.now()}-${Math.random()}`,
-          userId: user.id,
-          type: 'transaction',
-          action: 'create',
-          description: `Transaksi ${input.type === 'income' ? 'pemasukan' : 'pengeluaran'} ditambahkan: Rp ${input.amount.toLocaleString('id-ID')}`,
-        });
+        // Log activity to database
+        await activityLogger.logTransactionActivity(
+          user.id,
+          'create',
+          `Transaksi ${input.type === 'income' ? 'pemasukan' : 'pengeluaran'} ditambahkan: Rp ${input.amount.toLocaleString('id-ID')}`
+        );
         
         return transaction;
       }),
@@ -77,8 +76,7 @@ export const appRouter = router({
         await db.updateTransaction(id, updates);
         
         // Log activity
-        await db.createActivityLog({
-          id: `${Date.now()}-${Math.random()}`,
+        await activityLogger.logActivity({
           userId: user.id,
           type: 'transaction',
           action: 'update',
@@ -96,14 +94,8 @@ export const appRouter = router({
         
         await db.deleteTransaction(input.id);
         
-        // Log activity
-        await db.createActivityLog({
-          id: `${Date.now()}-${Math.random()}`,
-          userId: user.id,
-          type: 'transaction',
-          action: 'delete',
-          description: `Transaksi dihapus`,
-        });
+        // Log activity to database
+        await activityLogger.logTransactionActivity(user.id, 'delete', 'Transaksi dihapus');
         
         return { success: true };
       }),
@@ -158,8 +150,7 @@ export const appRouter = router({
         }
         
         // Log activity
-        await db.createActivityLog({
-          id: `${Date.now()}-${Math.random()}`,
+        await activityLogger.logActivity({
           userId: user.id,
           type: 'installment',
           action: 'create',
@@ -178,8 +169,7 @@ export const appRouter = router({
         await db.deleteInstallment(input.id);
         
         // Log activity
-        await db.createActivityLog({
-          id: `${Date.now()}-${Math.random()}`,
+        await activityLogger.logActivity({
           userId: user.id,
           type: 'installment',
           action: 'delete',
@@ -243,8 +233,7 @@ export const appRouter = router({
         await db.createSaving(saving);
         
         // Log activity
-        await db.createActivityLog({
-          id: `${Date.now()}-${Math.random()}`,
+        await activityLogger.logActivity({
           userId: user.id,
           type: 'saving',
           action: 'create',
@@ -270,8 +259,7 @@ export const appRouter = router({
         await db.updateSaving(id, updates);
         
         // Log activity
-        await db.createActivityLog({
-          id: `${Date.now()}-${Math.random()}`,
+        await activityLogger.logActivity({
           userId: user.id,
           type: 'saving',
           action: 'update',
@@ -290,8 +278,7 @@ export const appRouter = router({
         await db.deleteSaving(input.id);
         
         // Log activity
-        await db.createActivityLog({
-          id: `${Date.now()}-${Math.random()}`,
+        await activityLogger.logActivity({
           userId: user.id,
           type: 'saving',
           action: 'delete',
@@ -334,8 +321,7 @@ export const appRouter = router({
         await db.createBudget(budget);
         
         // Log activity
-        await db.createActivityLog({
-          id: `${Date.now()}-${Math.random()}`,
+        await activityLogger.logActivity({
           userId: user.id,
           type: 'transaction',
           action: 'create',
@@ -361,8 +347,7 @@ export const appRouter = router({
         await db.updateBudget(id, updates);
         
         // Log activity
-        await db.createActivityLog({
-          id: `${Date.now()}-${Math.random()}`,
+        await activityLogger.logActivity({
           userId: user.id,
           type: 'transaction',
           action: 'update',
@@ -381,8 +366,7 @@ export const appRouter = router({
         await db.deleteBudget(input.id);
         
         // Log activity
-        await db.createActivityLog({
-          id: `${Date.now()}-${Math.random()}`,
+        await activityLogger.logActivity({
           userId: user.id,
           type: 'transaction',
           action: 'delete',
@@ -411,8 +395,7 @@ export const appRouter = router({
         const result = await cloudBackup.createCloudBackup(user.id);
         
         // Log backup activity
-        await db.createActivityLog({
-          id: `${Date.now()}-${Math.random()}`,
+        await activityLogger.logActivity({
           userId: user.id,
           type: 'backup',
           action: 'create',
@@ -438,8 +421,7 @@ export const appRouter = router({
           const backupData = await cloudBackup.restoreCloudBackup(user.id, input.backupKey);
           
           // Log restore activity
-          await db.createActivityLog({
-            id: `${Date.now()}-${Math.random()}`,
+          await activityLogger.logActivity({
             userId: user.id,
             type: 'backup',
             action: 'restore',
