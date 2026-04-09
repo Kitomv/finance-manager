@@ -7,6 +7,25 @@ import * as db from "./db";
 import * as cloudBackup from "./cloudBackup";
 import * as activityLogger from "./activityLogger";
 import * as adminService from "./adminService";
+import { generateId } from "./id-generator";
+import {
+  transactionCreateSchema,
+  transactionUpdateSchema,
+  transactionDeleteSchema,
+  transactionListSchema,
+  installmentCreateSchema,
+  installmentDeleteSchema,
+  installmentListSchema,
+  installmentPaymentToggleSchema,
+  savingCreateSchema,
+  savingUpdateSchema,
+  savingDeleteSchema,
+  savingListSchema,
+  budgetCreateSchema,
+  budgetUpdateSchema,
+  budgetDeleteSchema,
+  budgetListSchema,
+} from "@shared/validators";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -24,26 +43,22 @@ export const appRouter = router({
 
   // Finance Manager Routers
   transactions: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      const user = ctx.user;
-      if (!user || !user.id) throw new Error("User not found");
-      return await db.getUserTransactions(user.id);
-    }),
+    list: protectedProcedure
+      .input(transactionListSchema)
+      .query(async ({ ctx, input }) => {
+        const user = ctx.user;
+        if (!user || !user.id) throw new Error("User not found");
+        return await db.getUserTransactions(user.id, input);
+      }),
 
     create: protectedProcedure
-      .input(z.object({
-        type: z.enum(['income', 'expense']),
-        amount: z.number().int().positive(),
-        category: z.string(),
-        description: z.string().optional(),
-        date: z.string(), // YYYY-MM-DD format
-      }))
+      .input(transactionCreateSchema)
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
         
         const transaction = {
-          id: `${Date.now()}-${Math.random()}`,
+          id: generateId('tx'),
           userId: user.id,
           ...input,
         };
@@ -61,14 +76,7 @@ export const appRouter = router({
       }),
 
     update: protectedProcedure
-      .input(z.object({
-        id: z.string(),
-        type: z.enum(['income', 'expense']).optional(),
-        amount: z.number().int().positive().optional(),
-        category: z.string().optional(),
-        description: z.string().optional(),
-        date: z.string().optional(),
-      }))
+      .input(transactionUpdateSchema)
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
@@ -88,7 +96,7 @@ export const appRouter = router({
       }),
 
     delete: protectedProcedure
-      .input(z.object({ id: z.string() }))
+      .input(transactionDeleteSchema)
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
@@ -103,45 +111,40 @@ export const appRouter = router({
   }),
 
   installments: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      const user = ctx.user;
-      if (!user || !user.id) throw new Error("User not found");
-      return await db.getUserInstallments(user.id);
-    }),
+    list: protectedProcedure
+      .input(installmentListSchema)
+      .query(async ({ ctx, input }) => {
+        const user = ctx.user;
+        if (!user || !user.id) throw new Error("User not found");
+        return await db.getUserInstallments(user.id);
+      }),
 
     create: protectedProcedure
-      .input(z.object({
-        name: z.string(),
-        totalAmount: z.number().int().positive(),
-        monthlyAmount: z.number().int().positive(),
-        startYear: z.number().int(),
-        startMonth: z.number().int().min(1).max(12),
-        durationMonths: z.number().int().positive(),
-      }))
+      .input(installmentCreateSchema)
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
         
         const installment = {
-          id: `${Date.now()}-${Math.random()}`,
+          id: generateId('inst'),
           userId: user.id,
           ...input,
         };
         
         await db.createInstallment(installment);
         
-        // Create installment payments
+        // Create installment payments with proper date arithmetic
+        const startDate = new Date(input.startYear, input.startMonth - 1, 1);
+        
         for (let i = 0; i < input.durationMonths; i++) {
-          let month = input.startMonth + i;
-          let year = input.startYear;
+          const paymentDate = new Date(startDate);
+          paymentDate.setMonth(paymentDate.getMonth() + i);
           
-          if (month > 12) {
-            year += Math.floor(month / 12);
-            month = month % 12 || 12;
-          }
+          const month = paymentDate.getMonth() + 1; // 1-12
+          const year = paymentDate.getFullYear();
           
           await db.createInstallmentPayment({
-            id: `${Date.now()}-${Math.random()}-${i}`,
+            id: generateId('pay'),
             installmentId: installment.id,
             month,
             year,
@@ -162,7 +165,7 @@ export const appRouter = router({
       }),
 
     delete: protectedProcedure
-      .input(z.object({ id: z.string() }))
+      .input(installmentDeleteSchema)
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
@@ -183,23 +186,38 @@ export const appRouter = router({
     payments: router({
       list: protectedProcedure
         .input(z.object({ installmentId: z.string() }))
-        .query(async ({ input }) => {
-          return await db.getInstallmentPayments(input.installmentId);
+        .query(async ({ ctx, input }) => {
+          const user = ctx.user;
+          if (!user || !user.id) throw new Error("User not found");
+          
+          // Verify installment belongs to current user
+          const installments = await db.getUserInstallments(user.id);
+          if (!installments.some(i => i.id === input.installmentId)) {
+            throw new Error("Unauthorized: Installment not found");
+          }
+          
+          return await db.getInstallmentPayments(input.installmentId, user.id);
         }),
 
       toggle: protectedProcedure
-        .input(z.object({
-          paymentId: z.string(),
-          isPaid: z.number().int(),
-        }))
+        .input(installmentPaymentToggleSchema)
         .mutation(async ({ ctx, input }) => {
           const user = ctx.user;
           if (!user || !user.id) throw new Error("User not found");
           
-          await db.updateInstallmentPayment(input.paymentId, user.id, {
-            isPaid: input.isPaid,
-            paidDate: input.isPaid === 1 ? new Date() : null,
-          });
+          // Only set paidDate when marking as paid, preserve it when unmarking
+          const updates: any = { isPaid: input.isPaid ? 1 : 0 };
+          if (input.isPaid) {
+            updates.paidDate = new Date();
+          }
+          
+          await db.updateInstallmentPaymentByDate(
+            input.installmentId,
+            input.month,
+            input.year,
+            user.id,
+            updates
+          );
           
           return { success: true };
         }),
@@ -207,27 +225,24 @@ export const appRouter = router({
   }),
 
   savings: router({
-    list: protectedProcedure.query(async ({ ctx }) => {
-      const user = ctx.user;
-      if (!user || !user.id) throw new Error("User not found");
-      return await db.getUserSavings(user.id);
-    }),
+    list: protectedProcedure
+      .input(savingListSchema)
+      .query(async ({ ctx, input }) => {
+        const user = ctx.user;
+        if (!user || !user.id) throw new Error("User not found");
+        return await db.getUserSavings(user.id);
+      }),
 
     create: protectedProcedure
-      .input(z.object({
-        name: z.string(),
-        category: z.string(),
-        targetAmount: z.number().int().positive(),
-        currentAmount: z.number().int().nonnegative().optional(),
-      }))
+      .input(savingCreateSchema)
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
         
         const saving = {
-          id: `${Date.now()}-${Math.random()}`,
+          id: generateId('save'),
           userId: user.id,
-          currentAmount: input.currentAmount || 0,
+          currentAmount: 0,
           ...input,
         };
         
@@ -245,13 +260,7 @@ export const appRouter = router({
       }),
 
     update: protectedProcedure
-      .input(z.object({
-        id: z.string(),
-        name: z.string().optional(),
-        category: z.string().optional(),
-        targetAmount: z.number().int().positive().optional(),
-        currentAmount: z.number().int().nonnegative().optional(),
-      }))
+      .input(savingUpdateSchema)
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
@@ -271,7 +280,7 @@ export const appRouter = router({
       }),
 
     delete: protectedProcedure
-      .input(z.object({ id: z.string() }))
+      .input(savingDeleteSchema)
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
@@ -292,7 +301,7 @@ export const appRouter = router({
 
   budgets: router({
     list: protectedProcedure
-      .input(z.object({
+      .input(budgetListSchema.extend({
         month: z.number().int().min(1).max(12).optional(),
         year: z.number().int().optional(),
       }))
@@ -303,18 +312,13 @@ export const appRouter = router({
       }),
 
     create: protectedProcedure
-      .input(z.object({
-        category: z.string(),
-        limit: z.number().int().positive(),
-        month: z.number().int().min(1).max(12),
-        year: z.number().int(),
-      }))
+      .input(budgetCreateSchema)
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
         
         const budget = {
-          id: `${Date.now()}-${Math.random()}`,
+          id: generateId('budget'),
           userId: user.id,
           ...input,
         };
@@ -324,7 +328,7 @@ export const appRouter = router({
         // Log activity
         await activityLogger.logActivity({
           userId: user.id,
-          type: 'transaction',
+          type: 'budget',
           action: 'create',
           description: `Budget ditambahkan untuk kategori ${input.category}`,
         });
@@ -333,13 +337,7 @@ export const appRouter = router({
       }),
 
     update: protectedProcedure
-      .input(z.object({
-        id: z.string(),
-        category: z.string().optional(),
-        limit: z.number().int().positive().optional(),
-        month: z.number().int().min(1).max(12).optional(),
-        year: z.number().int().optional(),
-      }))
+      .input(budgetUpdateSchema)
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
@@ -350,7 +348,7 @@ export const appRouter = router({
         // Log activity
         await activityLogger.logActivity({
           userId: user.id,
-          type: 'transaction',
+          type: 'budget',
           action: 'update',
           description: `Budget diperbarui`,
         });
@@ -359,7 +357,7 @@ export const appRouter = router({
       }),
 
     delete: protectedProcedure
-      .input(z.object({ id: z.string() }))
+      .input(budgetDeleteSchema)
       .mutation(async ({ ctx, input }) => {
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
@@ -369,7 +367,7 @@ export const appRouter = router({
         // Log activity
         await activityLogger.logActivity({
           userId: user.id,
-          type: 'transaction',
+          type: 'budget',
           action: 'delete',
           description: `Budget dihapus`,
         });

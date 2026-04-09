@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
+import { useNotification } from '@/contexts/NotificationContext';
+import { TRPCClientError } from '@trpc/client';
 
 export interface InstallmentPayment {
   id: string;
@@ -25,54 +27,99 @@ export interface Installment {
   completedAt?: number;
 }
 
-const STORAGE_KEY = 'finance-manager-installments';
+/**
+ * Get friendly error message from tRPC error
+ */
+const getErrorMessage = (error: unknown): string => {
+  if (error instanceof TRPCClientError) {
+    switch (error.data?.code) {
+      case 'BAD_REQUEST':
+        return 'Data cicilan tidak valid';
+      case 'UNAUTHORIZED':
+        return 'Anda perlu login terlebih dahulu';
+      default:
+        return error.message || 'Gagal memproses cicilan';
+    }
+  }
+  return 'Terjadi kesalahan yang tidak diketahui';
+};
 
 export function useInstallments() {
+  const { addNotification } = useNotification();
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [useDatabase, setUseDatabase] = useState(false);
 
-  // Try to use tRPC queries
-  const { data: dbInstallments, isLoading: dbLoading } = trpc.installments.list.useQuery(undefined, {
-    enabled: useDatabase,
+  // Fetch installments from database
+  const { data: dbInstallments, isLoading: dbLoading, refetch } = trpc.installments.list.useQuery(
+    { page: 1, limit: 50 },
+    {
+      staleTime: 1000 * 60 * 5,
+      gcTime: 1000 * 60 * 10,
+      refetchOnWindowFocus: false,
+    }
+  );
+
+  const createMutation = trpc.installments.create.useMutation({
+    onSuccess: (data) => {
+      refetch();
+      addNotification({
+        type: 'success',
+        title: 'Cicilan Berhasil Dibuat',
+        message: `${data.name} telah ditambahkan untuk ${data.durationMonths} bulan`,
+        duration: 5000,
+      });
+    },
+    onError: (error) => {
+      const errorMsg = getErrorMessage(error);
+      addNotification({
+        type: 'error',
+        title: 'Gagal Membuat Cicilan',
+        message: errorMsg,
+        duration: 6000,
+      });
+    },
   });
 
-  const createMutation = trpc.installments.create.useMutation();
-  const deleteMutation = trpc.installments.delete.useMutation();
-  const paymentToggleMutation = trpc.installments.payments.toggle.useMutation();
+  const deleteMutation = trpc.installments.delete.useMutation({
+    onSuccess: () => {
+      refetch();
+      addNotification({
+        type: 'success',
+        title: 'Cicilan Dihapus',
+        message: 'Cicilan telah dihapus dengan aman',
+        duration: 4000,
+      });
+    },
+    onError: (error) => {
+      const errorMsg = getErrorMessage(error);
+      addNotification({
+        type: 'error',
+        title: 'Gagal Menghapus Cicilan',
+        message: errorMsg,
+        duration: 6000,
+      });
+    },
+  });
 
-  // Load installments from database or localStorage on mount
-  useEffect(() => {
-    const checkDatabase = async () => {
-      try {
-        // Check if user is authenticated
-        const user = await trpc.auth.me.useQuery().data;
-        if (user) {
-          setUseDatabase(true);
-        }
-      } catch (error) {
-        console.log('Database not available, using localStorage');
-      }
-    };
-
-    checkDatabase();
-
-    // Load from localStorage as fallback
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      try {
-        setInstallments(JSON.parse(stored));
-      } catch (error) {
-        console.error('Failed to parse installments from localStorage:', error);
-      }
-    }
-    setIsLoaded(true);
-  }, []);
+  const paymentToggleMutation = trpc.installments.payments.toggle.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
+    onError: (error) => {
+      const errorMsg = getErrorMessage(error);
+      addNotification({
+        type: 'error',
+        title: 'Gagal Memperbarui Status Pembayaran',
+        message: errorMsg,
+        duration: 6000,
+      });
+    },
+  });
 
   // Update installments when database data changes
   useEffect(() => {
-    if (useDatabase && dbInstallments) {
-      const formattedInstallments = dbInstallments.map((inst: any) => ({
+    if (dbInstallments?.data) {
+      const formattedInstallments = dbInstallments.data.map((inst: any) => ({
         id: inst.id,
         name: inst.name,
         totalAmount: inst.totalAmount,
@@ -87,67 +134,71 @@ export function useInstallments() {
       }));
       setInstallments(formattedInstallments);
     }
-  }, [dbInstallments, useDatabase]);
-
-  // Save installments to localStorage whenever they change (fallback)
-  useEffect(() => {
-    if (isLoaded && !useDatabase) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(installments));
-    }
-  }, [installments, isLoaded, useDatabase]);
+    setIsLoaded(!dbLoading);
+  }, [dbInstallments, dbLoading]);
 
   const addInstallment = async (data: Omit<Installment, 'id' | 'createdAt' | 'payments'>) => {
     const totalMonths = data.totalMonths || data.durationMonths || 12;
     
-    // Generate payment schedule for localStorage
-    const payments: InstallmentPayment[] = [];
-    for (let i = 0; i < totalMonths; i++) {
-      const month = (data.startMonth + i - 1) % 12 + 1;
-      const year = data.startYear + Math.floor((data.startMonth + i - 1) / 12);
-      payments.push({
-        id: `${Date.now()}-${i}`,
+    try {
+      await createMutation.mutateAsync({
+        name: data.name,
+        totalAmount: data.totalAmount,
+        monthlyAmount: data.monthlyAmount,
+        startMonth: data.startMonth,
+        startYear: data.startYear,
+        durationMonths: totalMonths,
+      });
+    } catch (error) {
+      // Error already handled in mutation callbacks
+      throw error;
+    }
+  };
+
+  const deleteInstallment = async (id: string) => {
+    try {
+      await deleteMutation.mutateAsync({ id });
+    } catch (error) {
+      // Error already handled in mutation callbacks
+      throw error;
+    }
+  };
+
+  const togglePayment = async (
+    installmentId: string,
+    month: number,
+    year: number,
+    isPaid: boolean
+  ) => {
+    try {
+      await paymentToggleMutation.mutateAsync({
+        installmentId,
         month,
         year,
-        amount: data.monthlyAmount,
-        isPaid: false,
+        isPaid,
       });
+    } catch (error) {
+      // Error already handled in mutation callbacks
+      throw error;
     }
-
-    const newInstallment: Installment = {
-      ...data,
-      id: `${Date.now()}-${Math.random()}`,
-      createdAt: Date.now(),
-      payments,
-      totalMonths,
-    };
-
-    if (useDatabase) {
-      try {
-        await createMutation.mutateAsync({
-          name: data.name,
-          totalAmount: data.totalAmount,
-          monthlyAmount: data.monthlyAmount,
-          startMonth: data.startMonth,
-          startYear: data.startYear,
-          durationMonths: totalMonths,
-        });
-      } catch (error) {
-        console.error('Failed to create installment:', error);
-        // Fallback to localStorage
-        setInstallments((prev) => [newInstallment, ...prev]);
-      }
-    } else {
-      setInstallments((prev) => [newInstallment, ...prev]);
-    }
-
-    return newInstallment;
   };
 
-  const updateInstallment = (id: string, updates: Partial<Omit<Installment, 'id' | 'createdAt'>>) => {
-    setInstallments((prev) =>
-      prev.map((inst) => (inst.id === id ? { ...inst, ...updates } : inst))
-    );
+  return {
+    installments,
+    isLoading: dbLoading,
+    isLoaded,
+    addInstallment,
+    deleteInstallment,
+    togglePayment,
+    // Mutation states
+    isCreating: createMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    isTogglingPayment: paymentToggleMutation.isPending,
+    createError: createMutation.error,
+    deleteError: deleteMutation.error,
+    toggleError: paymentToggleMutation.error,
   };
+}
 
   const deleteInstallment = async (id: string) => {
     if (useDatabase) {
