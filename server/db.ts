@@ -104,16 +104,24 @@ export async function getUserTransactions(userId: number) {
   return await db.select().from(transactions).where(eq(transactions.userId, userId));
 }
 
-export async function updateTransaction(id: string, data: Partial<InsertTransaction>) {
+export async function updateTransaction(id: string, userId: number, data: Partial<InsertTransaction>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  if (Object.keys(data).length === 0) return { success: true };
+  
+  // Verify ownership first
+  const transaction = await db.select().from(transactions).where(eq(transactions.id, id)).limit(1);
+  if (!transaction.length || transaction[0].userId !== userId) {
+    throw new Error("Unauthorized: Transaction does not belong to user");
+  }
+  
   return await db.update(transactions).set(data).where(eq(transactions.id, id));
 }
 
-export async function deleteTransaction(id: string) {
+export async function deleteTransaction(id: string, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.delete(transactions).where(eq(transactions.id, id));
+  return await db.delete(transactions).where(and(eq(transactions.id, id), eq(transactions.userId, userId)));
 }
 
 // Installments
@@ -129,10 +137,10 @@ export async function getUserInstallments(userId: number) {
   return await db.select().from(installments).where(eq(installments.userId, userId));
 }
 
-export async function deleteInstallment(id: string) {
+export async function deleteInstallment(id: string, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.delete(installments).where(eq(installments.id, id));
+  return await db.delete(installments).where(and(eq(installments.id, id), eq(installments.userId, userId)));
 }
 
 // Installment Payments
@@ -148,9 +156,19 @@ export async function getInstallmentPayments(installmentId: string) {
   return await db.select().from(installmentPayments).where(eq(installmentPayments.installmentId, installmentId));
 }
 
-export async function updateInstallmentPayment(id: string, data: Partial<InsertInstallmentPayment>) {
+export async function updateInstallmentPayment(id: string, userId: number, data: Partial<InsertInstallmentPayment>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  
+  // Verify the payment belongs to an installment owned by this user
+  const payment = await db.select().from(installmentPayments).where(eq(installmentPayments.id, id)).limit(1);
+  if (!payment.length) throw new Error("Payment not found");
+  
+  const installment = await db.select().from(installments).where(eq(installments.id, payment[0].installmentId)).limit(1);
+  if (!installment.length || installment[0].userId !== userId) {
+    throw new Error("Unauthorized: Payment does not belong to user");
+  }
+  
   return await db.update(installmentPayments).set(data).where(eq(installmentPayments.id, id));
 }
 
@@ -167,16 +185,24 @@ export async function getUserSavings(userId: number) {
   return await db.select().from(savings).where(eq(savings.userId, userId));
 }
 
-export async function updateSaving(id: string, data: Partial<InsertSaving>) {
+export async function updateSaving(id: string, userId: number, data: Partial<InsertSaving>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  if (Object.keys(data).length === 0) return { success: true };
+  
+  // Verify ownership first
+  const saving = await db.select().from(savings).where(eq(savings.id, id)).limit(1);
+  if (!saving.length || saving[0].userId !== userId) {
+    throw new Error("Unauthorized: Saving does not belong to user");
+  }
+  
   return await db.update(savings).set(data).where(eq(savings.id, id));
 }
 
-export async function deleteSaving(id: string) {
+export async function deleteSaving(id: string, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.delete(savings).where(eq(savings.id, id));
+  return await db.delete(savings).where(and(eq(savings.id, id), eq(savings.userId, userId)));
 }
 
 // Budgets
@@ -201,16 +227,24 @@ export async function getUserBudgets(userId: number, month?: number, year?: numb
   return await query;
 }
 
-export async function updateBudget(id: string, data: Partial<InsertBudget>) {
+export async function updateBudget(id: string, userId: number, data: Partial<InsertBudget>) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
+  if (Object.keys(data).length === 0) return { success: true };
+  
+  // Verify ownership first
+  const budget = await db.select().from(budgets).where(eq(budgets.id, id)).limit(1);
+  if (!budget.length || budget[0].userId !== userId) {
+    throw new Error("Unauthorized: Budget does not belong to user");
+  }
+  
   return await db.update(budgets).set(data).where(eq(budgets.id, id));
 }
 
-export async function deleteBudget(id: string) {
+export async function deleteBudget(id: string, userId: number) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
-  return await db.delete(budgets).where(eq(budgets.id, id));
+  return await db.delete(budgets).where(and(eq(budgets.id, id), eq(budgets.userId, userId)));
 }
 
 // Activity Logs

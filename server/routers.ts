@@ -73,7 +73,7 @@ export const appRouter = router({
         if (!user || !user.id) throw new Error("User not found");
         
         const { id, ...updates } = input;
-        await db.updateTransaction(id, updates);
+        await db.updateTransaction(id, user.id, updates);
         
         // Log activity
         await activityLogger.logActivity({
@@ -92,7 +92,7 @@ export const appRouter = router({
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
         
-        await db.deleteTransaction(input.id);
+        await db.deleteTransaction(input.id, user.id);
         
         // Log activity to database
         await activityLogger.logTransactionActivity(user.id, 'delete', 'Transaksi dihapus');
@@ -166,7 +166,7 @@ export const appRouter = router({
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
         
-        await db.deleteInstallment(input.id);
+        await db.deleteInstallment(input.id, user.id);
         
         // Log activity
         await activityLogger.logActivity({
@@ -195,7 +195,7 @@ export const appRouter = router({
           const user = ctx.user;
           if (!user || !user.id) throw new Error("User not found");
           
-          await db.updateInstallmentPayment(input.paymentId, {
+          await db.updateInstallmentPayment(input.paymentId, user.id, {
             isPaid: input.isPaid,
             paidDate: input.isPaid === 1 ? new Date() : null,
           });
@@ -256,7 +256,7 @@ export const appRouter = router({
         if (!user || !user.id) throw new Error("User not found");
         
         const { id, ...updates } = input;
-        await db.updateSaving(id, updates);
+        await db.updateSaving(id, user.id, updates);
         
         // Log activity
         await activityLogger.logActivity({
@@ -275,7 +275,7 @@ export const appRouter = router({
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
         
-        await db.deleteSaving(input.id);
+        await db.deleteSaving(input.id, user.id);
         
         // Log activity
         await activityLogger.logActivity({
@@ -344,7 +344,7 @@ export const appRouter = router({
         if (!user || !user.id) throw new Error("User not found");
         
         const { id, ...updates } = input;
-        await db.updateBudget(id, updates);
+        await db.updateBudget(id, user.id, updates);
         
         // Log activity
         await activityLogger.logActivity({
@@ -363,7 +363,7 @@ export const appRouter = router({
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");
         
-        await db.deleteBudget(input.id);
+        await db.deleteBudget(input.id, user.id);
         
         // Log activity
         await activityLogger.logActivity({

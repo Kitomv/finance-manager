@@ -50,7 +50,7 @@ describe('Transactions Router', () => {
       return;
     }
 
-    const result = await updateTransaction(testTransactionId, {
+    const result = await updateTransaction(testTransactionId, testUserId, {
       amount: 150000,
       description: 'Updated test transaction',
     });
