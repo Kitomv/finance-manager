@@ -26,8 +26,8 @@ export interface AdminActivityLog {
   userId: number;
   userName: string | null;
   userEmail: string | null;
-  type: 'transaction' | 'installment' | 'saving' | 'budget' | 'backup' | 'restore';
-  action: 'create' | 'update' | 'delete';
+  type: 'transaction' | 'installment' | 'saving' | 'budget' | 'backup';
+  action: 'create' | 'update' | 'delete' | 'restore';
   description: string;
   createdAt: Date;
 }

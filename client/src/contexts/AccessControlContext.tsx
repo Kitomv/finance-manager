@@ -8,6 +8,7 @@ export interface User {
   email: string;
   password: string;
   accessLevel: AccessLevel;
+  role?: 'admin' | 'user'; // OAuth role from database
   createdAt: string;
 }
 

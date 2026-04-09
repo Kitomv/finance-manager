@@ -38,7 +38,7 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
     { id: 'installments', label: 'Cicilan', icon: CreditCard, href: '/installments' },
     { id: 'savings', label: 'Tabungan', icon: TrendingDown, href: '/savings' },
     { id: 'budget', label: 'Budget', icon: BarChart3, href: '/budget' },
-    ...(currentUser?.accessLevel === 'admin' ? [
+    ...((currentUser?.role === 'admin' || currentUser?.accessLevel === 'admin') ? [
       { id: 'user-management', label: 'Manajemen User', icon: Users, href: '/user-management' },
       { id: 'admin', label: 'Admin Dashboard', icon: Shield, href: '/admin' },
     ] : []),
