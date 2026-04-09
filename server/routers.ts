@@ -6,6 +6,7 @@ import { z } from "zod";
 import * as db from "./db";
 import * as cloudBackup from "./cloudBackup";
 import * as activityLogger from "./activityLogger";
+import * as adminService from "./adminService";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -446,6 +447,95 @@ export const appRouter = router({
         return [];
       }
     }),
+  }),
+
+  // Admin Routers (admin-only access)
+  admin: router({
+    getAllUsers: protectedProcedure
+      .input(z.object({
+        limit: z.number().int().positive().default(50),
+        offset: z.number().int().nonnegative().default(0),
+      }))
+      .query(async ({ ctx, input }) => {
+        const user = ctx.user;
+        if (!user || !user.id) throw new Error("User not found");
+        if (user.role !== 'admin') throw new Error("Unauthorized: Admin access required");
+        
+        return await adminService.getAllUsers(input.limit, input.offset);
+      }),
+
+    getTotalUserCount: protectedProcedure.query(async ({ ctx }) => {
+      const user = ctx.user;
+      if (!user || !user.id) throw new Error("User not found");
+      if (user.role !== 'admin') throw new Error("Unauthorized: Admin access required");
+      
+      return await adminService.getTotalUserCount();
+    }),
+
+    getAllActivityLogs: protectedProcedure
+      .input(z.object({
+        limit: z.number().int().positive().default(100),
+        offset: z.number().int().nonnegative().default(0),
+        userId: z.number().int().optional(),
+        type: z.string().optional(),
+        action: z.string().optional(),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const user = ctx.user;
+        if (!user || !user.id) throw new Error("User not found");
+        if (user.role !== 'admin') throw new Error("Unauthorized: Admin access required");
+        
+        return await adminService.getAllActivityLogs(input.limit, input.offset, {
+          userId: input.userId,
+          type: input.type,
+          action: input.action,
+          startDate: input.startDate,
+          endDate: input.endDate,
+        });
+      }),
+
+    getAdminStats: protectedProcedure.query(async ({ ctx }) => {
+      const user = ctx.user;
+      if (!user || !user.id) throw new Error("User not found");
+      if (user.role !== 'admin') throw new Error("Unauthorized: Admin access required");
+      
+      return await adminService.getAdminStats();
+    }),
+
+    getUserDetails: protectedProcedure
+      .input(z.object({ userId: z.number().int().positive() }))
+      .query(async ({ ctx, input }) => {
+        const user = ctx.user;
+        if (!user || !user.id) throw new Error("User not found");
+        if (user.role !== 'admin') throw new Error("Unauthorized: Admin access required");
+        
+        return await adminService.getUserDetails(input.userId);
+      }),
+
+    updateUserRole: protectedProcedure
+      .input(z.object({
+        userId: z.number().int().positive(),
+        newRole: z.enum(['user', 'admin']),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const user = ctx.user;
+        if (!user || !user.id) throw new Error("User not found");
+        if (user.role !== 'admin') throw new Error("Unauthorized: Admin access required");
+        
+        await adminService.updateUserRole(input.userId, input.newRole);
+        
+        // Log activity
+        await activityLogger.logActivity({
+          userId: user.id,
+          type: 'transaction',
+          action: 'update',
+          description: `User ${input.userId} role updated to ${input.newRole}`,
+        });
+        
+        return { success: true };
+      }),
   }),
 });
 

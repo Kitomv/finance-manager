@@ -16,6 +16,7 @@ import Savings from "./pages/Savings";
 import Budget from "./pages/Budget";
 import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
+import AdminDashboard from "./pages/AdminDashboard";
 
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const { currentUser } = useAccessControl();
@@ -49,6 +50,7 @@ function Router() {
       <Route path="/budget" component={Budget} />
       <Route path="/settings" component={Settings} />
       <Route path="/user-management" component={UserManagement} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

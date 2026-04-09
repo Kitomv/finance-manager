@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { BarChart3, Settings, Home, TrendingUp, TrendingDown, CreditCard, Menu, X, LogOut, Users } from 'lucide-react';
+import { BarChart3, Settings, Home, TrendingUp, TrendingDown, CreditCard, Menu, X, LogOut, Users, Shield } from 'lucide-react';
 import { useLocation } from 'wouter';
 import ThemeSwitcher from './ThemeSwitcher';
 import { useAccessControl } from '@/contexts/AccessControlContext';
@@ -7,7 +7,7 @@ import { Button } from './ui/button';
 
 interface DashboardLayoutProps {
   children: ReactNode;
-  currentPage?: 'dashboard' | 'transactions' | 'analytics' | 'installments' | 'savings' | 'budget' | 'settings' | 'user-management';
+  currentPage?: 'dashboard' | 'transactions' | 'analytics' | 'installments' | 'savings' | 'budget' | 'settings' | 'user-management' | 'admin';
 }
 
 export default function DashboardLayout({ children, currentPage }: DashboardLayoutProps) {
@@ -25,6 +25,7 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
     if (location === '/budget') return 'budget';
     if (location === '/settings') return 'settings';
     if (location === '/user-management') return 'user-management';
+    if (location === '/admin') return 'admin';
     return 'dashboard';
   };
   
@@ -39,6 +40,7 @@ export default function DashboardLayout({ children, currentPage }: DashboardLayo
     { id: 'budget', label: 'Budget', icon: BarChart3, href: '/budget' },
     ...(currentUser?.accessLevel === 'admin' ? [
       { id: 'user-management', label: 'Manajemen User', icon: Users, href: '/user-management' },
+      { id: 'admin', label: 'Admin Dashboard', icon: Shield, href: '/admin' },
     ] : []),
     { id: 'settings', label: 'Pengaturan', icon: Settings, href: '/settings' },
   ];
