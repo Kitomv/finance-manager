@@ -8,6 +8,12 @@ import * as cloudBackup from "./cloudBackup";
 import * as activityLogger from "./activityLogger";
 import * as adminService from "./adminService";
 
+// Define schemas inline
+const budgetListSchema = z.object({
+  month: z.number().int().min(1).max(12).optional(),
+  year: z.number().int().optional(),
+});
+
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
@@ -100,6 +106,19 @@ export const appRouter = router({
         
         return { success: true };
       }),
+
+    deleteAll: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        const user = ctx.user;
+        if (!user || !user.id) throw new Error("User not found");
+        
+        await db.deleteAllTransactions(user.id);
+        
+        // Log activity to database
+        await activityLogger.logTransactionActivity(user.id, 'delete', 'Semua transaksi dihapus');
+        
+        return { success: true };
+      }),
   }),
 
   installments: router({
@@ -108,6 +127,24 @@ export const appRouter = router({
       if (!user || !user.id) throw new Error("User not found");
       return await db.getUserInstallments(user.id);
     }),
+
+    deleteAll: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        const user = ctx.user;
+        if (!user || !user.id) throw new Error("User not found");
+        
+        await db.deleteAllInstallments(user.id);
+        
+        // Log activity to database
+        await activityLogger.logActivity({
+          userId: user.id,
+          type: 'installment',
+          action: 'delete',
+          description: 'Semua cicilan dihapus',
+        });
+        
+        return { success: true };
+      }),
 
     create: protectedProcedure
       .input(z.object({
@@ -213,6 +250,24 @@ export const appRouter = router({
       return await db.getUserSavings(user.id);
     }),
 
+    deleteAll: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        const user = ctx.user;
+        if (!user || !user.id) throw new Error("User not found");
+        
+        await db.deleteAllSavings(user.id);
+        
+        // Log activity to database
+        await activityLogger.logActivity({
+          userId: user.id,
+          type: 'saving',
+          action: 'delete',
+          description: 'Semua tabungan dihapus',
+        });
+        
+        return { success: true };
+      }),
+
     create: protectedProcedure
       .input(z.object({
         name: z.string(),
@@ -289,13 +344,27 @@ export const appRouter = router({
         return { success: true };
       }),
   }),
-
   budgets: router({
+    deleteAll: protectedProcedure
+      .mutation(async ({ ctx }) => {
+        const user = ctx.user;
+        if (!user || !user.id) throw new Error("User not found");
+        
+        await db.deleteAllBudgets(user.id);
+        
+        // Log activity to database
+        await activityLogger.logActivity({
+          userId: user.id,
+          type: 'budget',
+          action: 'delete',
+          description: 'Semua budget dihapus',
+        });
+        
+        return { success: true };
+      }),
+
     list: protectedProcedure
-      .input(z.object({
-        month: z.number().int().min(1).max(12).optional(),
-        year: z.number().int().optional(),
-      }))
+      .input(budgetListSchema)
       .query(async ({ ctx, input }) => {
         const user = ctx.user;
         if (!user || !user.id) throw new Error("User not found");

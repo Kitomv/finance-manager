@@ -1,6 +1,5 @@
 import { useRef, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { useAccessControl } from '@/contexts/AccessControlContext';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -11,6 +10,8 @@ import { useInstallments } from '@/hooks/useInstallments';
 import { useSavings } from '@/hooks/useSavings';
 import { useActivityLog } from '@/hooks/useActivityLog';
 import CloudBackupManager from '@/components/CloudBackupManager';
+import { useAuth } from '@/_core/hooks/useAuth';
+import { trpc } from '@/lib/trpc';
 import {
   Select,
   SelectContent,
@@ -21,7 +22,7 @@ import {
 import { toast } from 'sonner';
 
 export default function Settings() {
-  const { hasPermission } = useAccessControl();
+  const { user } = useAuth();
   const { transactions, importTransactions } = useTransactions();
   const { installments, importInstallments } = useInstallments();
   const { savings, importSavings } = useSavings();
@@ -30,6 +31,12 @@ export default function Settings() {
   const [activeTab, setActiveTab] = useState<'general' | 'activity' | 'backup'>('general');
   const [filterType, setFilterType] = useState<'all' | 'transaction' | 'installment' | 'saving'>('all');
   const [filterAction, setFilterAction] = useState<'all' | 'create' | 'update' | 'delete'>('all');
+  
+  // tRPC mutations for delete all
+  const deleteAllTransactionsMutation = trpc.transactions.deleteAll.useMutation();
+  const deleteAllInstallmentsMutation = trpc.installments.deleteAll.useMutation();
+  const deleteAllSavingsMutation = trpc.savings.deleteAll.useMutation();
+  const deleteAllBudgetsMutation = trpc.budgets.deleteAll.useMutation();
 
   const handleExportData = () => {
     const allData = {
@@ -49,12 +56,24 @@ export default function Settings() {
     toast.success('Semua data berhasil diunduh');
   };
 
-  const handleClearData = () => {
-    if (window.confirm('Apakah Anda yakin ingin menghapus SEMUA data (transaksi, cicilan, tabungan)? Tindakan ini tidak dapat dibatalkan.')) {
-      localStorage.removeItem('finance-manager-transactions');
-      localStorage.removeItem('finance-manager-installments');
-      localStorage.removeItem('finance-manager-savings');
-      window.location.reload();
+  const handleClearData = async () => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus SEMUA data (transaksi, cicilan, tabungan, budget)? Tindakan ini tidak dapat dibatalkan.')) {
+      return;
+    }
+    
+    try {
+      // Delete all data from database
+      await Promise.all([
+        deleteAllTransactionsMutation.mutateAsync(),
+        deleteAllInstallmentsMutation.mutateAsync(),
+        deleteAllSavingsMutation.mutateAsync(),
+        deleteAllBudgetsMutation.mutateAsync(),
+      ]);
+      
+      toast.success('Semua data berhasil dihapus');
+    } catch (error) {
+      console.error('Failed to delete all data:', error);
+      toast.error('Gagal menghapus data. Silakan coba lagi.');
     }
   };
 
@@ -232,7 +251,7 @@ export default function Settings() {
         {activeTab === 'general' && (
           <div className="space-y-6">
             {/* Data Management - Only for Admin */}
-            {hasPermission('canExportData') && hasPermission('canImportData') && hasPermission('canClearData') ? (
+            {user?.role === 'admin' ? (
               <Card className="p-4 sm:p-6">
                 <h2 className="text-base sm:text-xl font-semibold text-foreground mb-4">Manajemen Data</h2>
                 <div className="space-y-4">
@@ -299,7 +318,7 @@ export default function Settings() {
                 </div>
               </div>
             </Card>
-            ) : (
+            ) : user && (user as any).role === 'admin' ? null : (
               <Card className="p-4 sm:p-6 border-amber-200 bg-amber-50">
                 <div className="flex items-center gap-3">
                   <Shield className="w-5 h-5 text-amber-600" />

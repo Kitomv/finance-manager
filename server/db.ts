@@ -259,3 +259,28 @@ export async function getUserActivityLogs(userId: number) {
   if (!db) throw new Error("Database not available");
   return await db.select().from(activityLogs).where(eq(activityLogs.userId, userId));
 }
+
+// Delete All Functions for User Data Cleanup
+export async function deleteAllTransactions(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.delete(transactions).where(eq(transactions.userId, userId));
+}
+
+export async function deleteAllInstallments(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.delete(installments).where(eq(installments.userId, userId));
+}
+
+export async function deleteAllSavings(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.delete(savings).where(eq(savings.userId, userId));
+}
+
+export async function deleteAllBudgets(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  return await db.delete(budgets).where(eq(budgets.userId, userId));
+}
