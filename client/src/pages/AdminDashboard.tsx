@@ -16,7 +16,35 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activityFilter, setActivityFilter] = useState('all');
 
-  // Check admin access
+  // Fetch admin data - MUST be called before any early returns
+  const { data: stats } = trpc.admin.getAdminStats.useQuery(undefined, {
+    enabled: isAdmin && !loading,
+  });
+  const { data: users, isLoading: usersLoading } = trpc.admin.getAllUsers.useQuery(
+    {
+      limit: 10,
+      offset: currentPage * 10,
+    },
+    {
+      enabled: isAdmin && !loading,
+    }
+  );
+  const { data: activityLogs, isLoading: logsLoading } = trpc.admin.getAllActivityLogs.useQuery(
+    {
+      limit: 50,
+      offset: 0,
+    },
+    {
+      enabled: isAdmin && !loading,
+    }
+  );
+  const { data: selectedUserDetails } = trpc.admin.getUserDetails.useQuery(
+    { userId: selectedUserId! },
+    { enabled: !!selectedUserId && isAdmin && !loading }
+  );
+  const updateRoleMutation = trpc.admin.updateUserRole.useMutation();
+
+  // Check admin access - NOW after all hooks
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -44,22 +72,6 @@ export default function AdminDashboard() {
       </div>
     );
   }
-
-  // Fetch admin data
-  const { data: stats } = trpc.admin.getAdminStats.useQuery();
-  const { data: users, isLoading: usersLoading } = trpc.admin.getAllUsers.useQuery({
-    limit: 10,
-    offset: currentPage * 10,
-  });
-  const { data: activityLogs, isLoading: logsLoading } = trpc.admin.getAllActivityLogs.useQuery({
-    limit: 50,
-    offset: 0,
-  });
-  const { data: selectedUserDetails } = trpc.admin.getUserDetails.useQuery(
-    { userId: selectedUserId! },
-    { enabled: !!selectedUserId }
-  );
-  const updateRoleMutation = trpc.admin.updateUserRole.useMutation();
 
   const handleRoleChange = async (userId: number, newRole: 'user' | 'admin') => {
     try {
