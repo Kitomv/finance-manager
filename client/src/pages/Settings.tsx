@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import DashboardLayout from '@/components/DashboardLayout';
-import { useAccessControl } from '@/contexts/AccessControlContext';
+import { useAuth } from '@/_core/hooks/useAuth';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -21,7 +21,7 @@ import {
 import { toast } from 'sonner';
 
 export default function Settings() {
-  const { hasPermission } = useAccessControl();
+  const { user } = useAuth();
   const { transactions, importTransactions } = useTransactions();
   const { installments, importInstallments } = useInstallments();
   const { savings, importSavings } = useSavings();
@@ -232,7 +232,7 @@ export default function Settings() {
         {activeTab === 'general' && (
           <div className="space-y-6">
             {/* Data Management - Only for Admin */}
-            {hasPermission('canExportData') && hasPermission('canImportData') && hasPermission('canClearData') ? (
+            {user?.role === 'admin' ? (
               <Card className="p-4 sm:p-6">
                 <h2 className="text-base sm:text-xl font-semibold text-foreground mb-4">Manajemen Data</h2>
                 <div className="space-y-4">

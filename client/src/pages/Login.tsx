@@ -1,17 +1,14 @@
 import { useState } from 'react';
-import { useAccessControl } from '@/contexts/AccessControlContext';
 import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getLoginUrl } from '@/const';
 
 export default function Login() {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAccessControl();
   const [, navigate] = useLocation();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -19,12 +16,8 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      if (login(username, password)) {
-        toast.success('Login berhasil!');
-        navigate('/');
-      } else {
-        toast.error('Username atau password salah');
-      }
+      // Redirect to OAuth login
+      window.location.href = getLoginUrl();
     } finally {
       setIsLoading(false);
     }
@@ -48,39 +41,13 @@ export default function Login() {
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
-            {/* Username */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Username</label>
-              <Input
-                type="text"
-                placeholder="Masukkan username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                disabled={isLoading}
-                className="text-base"
-              />
-            </div>
-
-            {/* Password */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Password</label>
-              <Input
-                type="password"
-                placeholder="Masukkan password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                disabled={isLoading}
-                className="text-base"
-              />
-            </div>
-
             {/* Login Button */}
             <Button
               type="submit"
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold py-2 rounded-lg transition-all"
               disabled={isLoading}
             >
-              {isLoading ? 'Sedang login...' : 'Login'}
+              {isLoading ? 'Sedang login...' : 'Login dengan Manus'}
             </Button>
           </form>
 

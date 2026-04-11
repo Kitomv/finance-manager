@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
+<<<<<<< Updated upstream
 import { useNotification } from '@/contexts/NotificationContext';
 import { TRPCClientError } from '@trpc/client';
+=======
+import { useAuth } from '@/_core/hooks/useAuth';
+>>>>>>> Stashed changes
 
 export interface InstallmentPayment {
   id: string;
@@ -27,6 +31,7 @@ export interface Installment {
   completedAt?: number;
 }
 
+<<<<<<< Updated upstream
 /**
  * Get friendly error message from tRPC error
  */
@@ -98,6 +103,27 @@ export function useInstallments() {
         message: errorMsg,
         duration: 6000,
       });
+=======
+export function useInstallments() {
+  const { user, isAuthenticated } = useAuth();
+  const [installments, setInstallments] = useState<Installment[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch installments from database
+  const { data: dbInstallments, isLoading: dbLoading, refetch } = trpc.installments.list.useQuery(undefined, {
+    enabled: isAuthenticated && !!user,
+  });
+
+  const createMutation = trpc.installments.create.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
+  });
+
+  const deleteMutation = trpc.installments.delete.useMutation({
+    onSuccess: () => {
+      refetch();
+>>>>>>> Stashed changes
     },
   });
 
@@ -105,6 +131,7 @@ export function useInstallments() {
     onSuccess: () => {
       refetch();
     },
+<<<<<<< Updated upstream
     onError: (error) => {
       const errorMsg = getErrorMessage(error);
       addNotification({
@@ -114,12 +141,19 @@ export function useInstallments() {
         duration: 6000,
       });
     },
+=======
+>>>>>>> Stashed changes
   });
 
-  // Update installments when database data changes
+  // Update installments from database
   useEffect(() => {
+<<<<<<< Updated upstream
     if (dbInstallments?.data) {
       const formattedInstallments = dbInstallments.data.map((inst: any) => ({
+=======
+    if (dbInstallments) {
+      const formattedInstallments = dbInstallments.map((inst: any) => ({
+>>>>>>> Stashed changes
         id: inst.id,
         name: inst.name,
         totalAmount: inst.totalAmount,
@@ -128,12 +162,14 @@ export function useInstallments() {
         durationMonths: inst.durationMonths,
         startMonth: inst.startMonth,
         startYear: inst.startYear,
-        description: '',
-        payments: [],
-        createdAt: inst.createdAt?.getTime() || Date.now(),
+        description: inst.description,
+        payments: inst.payments || [],
+        createdAt: inst.createdAt?.getTime?.() || new Date(inst.createdAt).getTime(),
+        completedAt: inst.completedAt?.getTime?.() || (inst.completedAt ? new Date(inst.completedAt).getTime() : undefined),
       }));
       setInstallments(formattedInstallments);
     }
+<<<<<<< Updated upstream
     setIsLoaded(!dbLoading);
   }, [dbInstallments, dbLoading]);
 
@@ -197,211 +233,139 @@ export function useInstallments() {
     createError: createMutation.error,
     deleteError: deleteMutation.error,
     toggleError: paymentToggleMutation.error,
+=======
+    setIsLoading(dbLoading);
+  }, [dbInstallments, dbLoading]);
+
+  const addInstallment = async (installment: Omit<Installment, 'id'>) => {
+    try {
+      await createMutation.mutateAsync({
+        name: installment.name,
+        totalAmount: installment.totalAmount,
+        monthlyAmount: installment.monthlyAmount,
+        startYear: installment.startYear,
+        startMonth: installment.startMonth,
+        durationMonths: installment.durationMonths || installment.totalMonths || 12,
+      });
+    } catch (error) {
+      console.error('Failed to add installment:', error);
+      throw error;
+    }
+>>>>>>> Stashed changes
   };
 }
 
   const deleteInstallment = async (id: string) => {
-    if (useDatabase) {
-      try {
-        await deleteMutation.mutateAsync({ id });
-      } catch (error) {
-        console.error('Failed to delete installment:', error);
-        // Fallback to localStorage
-        setInstallments((prev) => prev.filter((inst) => inst.id !== id));
-      }
-    } else {
-      setInstallments((prev) => prev.filter((inst) => inst.id !== id));
+    try {
+      await deleteMutation.mutateAsync({ id });
+    } catch (error) {
+      console.error('Failed to delete installment:', error);
+      throw error;
     }
   };
 
-  const markPaymentAsPaid = async (installmentId: string, paymentId: string) => {
-    if (useDatabase) {
-      try {
-        await paymentToggleMutation.mutateAsync({
-          paymentId,
-          isPaid: 1,
-        });
-      } catch (error) {
-        console.error('Failed to mark payment as paid:', error);
-      }
-    } else {
-      setInstallments((prev) =>
-        prev.map((inst) => {
-          if (inst.id === installmentId) {
-            const updatedPayments = inst.payments?.map((p) =>
-              p.id === paymentId
-                ? { ...p, isPaid: true, paidDate: new Date().toISOString().split('T')[0] }
-                : p
-            ) || [];
-
-            // Check if all payments are paid
-            const allPaid = updatedPayments.every((p) => p.isPaid);
-            return {
-              ...inst,
-              payments: updatedPayments,
-              completedAt: allPaid ? Date.now() : inst.completedAt,
-            };
-          }
-          return inst;
-        })
-      );
+  const togglePayment = async (installmentId: string, month: number, year: number, isPaid: boolean) => {
+    try {
+      // Find payment ID from installment payments
+      const installment = installments.find(i => i.id === installmentId);
+      if (!installment || !installment.payments) throw new Error('Installment not found');
+      
+      const payment = installment.payments.find(p => p.month === month && p.year === year);
+      if (!payment) throw new Error('Payment not found');
+      
+      await paymentToggleMutation.mutateAsync({
+        paymentId: payment.id,
+        isPaid: isPaid ? 1 : 0,
+      });
+    } catch (error) {
+      console.error('Failed to toggle payment:', error);
+      throw error;
     }
   };
 
-  const markPaymentAsUnpaid = async (installmentId: string, paymentId: string) => {
-    if (useDatabase) {
-      try {
-        await paymentToggleMutation.mutateAsync({
-          paymentId,
-          isPaid: 0,
-        });
-      } catch (error) {
-        console.error('Failed to mark payment as unpaid:', error);
-      }
-    } else {
-      setInstallments((prev) =>
-        prev.map((inst) => {
-          if (inst.id === installmentId) {
-            const updatedPayments = inst.payments?.map((p) =>
-              p.id === paymentId
-                ? { ...p, isPaid: false, paidDate: undefined }
-                : p
-            ) || [];
-
-            return {
-              ...inst,
-              payments: updatedPayments,
-              completedAt: undefined,
-            };
-          }
-          return inst;
-        })
-      );
-    }
+  const getInstallmentProgress = (installment: Installment) => {
+    if (!installment.payments) return 0;
+    const paidCount = installment.payments.filter((p) => p.isPaid).length;
+    return (paidCount / installment.payments.length) * 100;
   };
 
-  const getTotalPaidAmount = (installmentId: string) => {
-    const installment = installments.find((i) => i.id === installmentId);
-    if (!installment) return 0;
-    return installment.payments
-      ?.filter((p) => p.isPaid)
-      .reduce((sum, p) => sum + p.amount, 0) || 0;
-  };
-
-  const getRemainingAmount = (installmentId: string) => {
-    const installment = installments.find((i) => i.id === installmentId);
-    if (!installment) return 0;
-    return installment.totalAmount - getTotalPaidAmount(installmentId);
-  };
-
-  const getProgressPercentage = (installmentId: string) => {
-    const installment = installments.find((i) => i.id === installmentId);
-    if (!installment) return 0;
-    const totalMonths = installment.totalMonths || installment.durationMonths || 12;
-    const paidCount = installment.payments?.filter((p) => p.isPaid).length || 0;
-    return Math.round((paidCount / totalMonths) * 100);
+  const getProgressPercentage = (installment: Installment) => {
+    return getInstallmentProgress(installment);
   };
 
   const getUpcomingPayments = () => {
     const today = new Date();
-    const currentMonth = today.getMonth() + 1;
-    const currentYear = today.getFullYear();
-
-    const upcoming: Array<InstallmentPayment & { installmentName: string }> = [];
-
+    const upcoming: any[] = [];
+    
     installments.forEach((inst) => {
-      inst.payments?.forEach((payment) => {
-        if (!payment.isPaid && (payment.year > currentYear || (payment.year === currentYear && payment.month >= currentMonth))) {
-          upcoming.push({
-            ...payment,
-            installmentName: inst.name,
-          });
+      if (!inst.payments) return;
+      inst.payments.forEach((payment) => {
+        if (!payment.isPaid) {
+          const paymentDate = new Date(today.getFullYear(), payment.month - 1, 1);
+          if (paymentDate >= today) {
+            upcoming.push({
+              installmentId: inst.id,
+              installmentName: inst.name,
+              month: payment.month,
+              year: payment.year,
+              amount: payment.amount,
+              date: paymentDate,
+            });
+          }
         }
       });
     });
-
-    return upcoming.sort((a, b) => {
-      if (a.year !== b.year) return a.year - b.year;
-      return a.month - b.month;
-    });
+    
+    return upcoming.sort((a, b) => a.date.getTime() - b.date.getTime());
   };
 
-  const duplicateInstallment = (installment: Installment) => {
-    const newInstallment = addInstallment({
-      name: `${installment.name} (Duplikat)`,
-      totalAmount: installment.totalAmount,
-      monthlyAmount: installment.monthlyAmount,
-      totalMonths: installment.totalMonths,
-      startMonth: installment.startMonth,
-      startYear: installment.startYear,
-      description: installment.description,
-    });
-    return newInstallment;
+  const getRemainingAmount = (installment: Installment) => {
+    if (!installment.payments) return installment.totalAmount;
+    const paidCount = installment.payments.filter((p) => p.isPaid).length;
+    return installment.totalAmount - (paidCount * installment.monthlyAmount);
   };
 
-  const resetInstallment = (id: string) => {
-    setInstallments((prev) =>
-      prev.map((inst) => {
-        if (inst.id === id) {
-          const resetPayments = inst.payments?.map((p) => ({
-            ...p,
-            isPaid: false,
-            paidDate: undefined,
-          })) || [];
-          return {
-            ...inst,
-            payments: resetPayments,
-            completedAt: undefined,
-          };
-        }
-        return inst;
-      })
-    );
+  const markPaymentAsUnpaid = async (installmentId: string, month: number, year: number) => {
+    try {
+      await togglePayment(installmentId, month, year, false);
+    } catch (error) {
+      console.error('Failed to mark payment as unpaid:', error);
+      throw error;
+    }
   };
 
-  const deleteAllInstallments = () => {
-    setInstallments([]);
+  const getTotalPaidAmount = (installment: Installment) => {
+    if (!installment.payments) return 0;
+    const paidCount = installment.payments.filter((p) => p.isPaid).length;
+    return Math.round(paidCount * installment.monthlyAmount);
   };
 
-  const exportInstallments = () => {
-    const dataStr = JSON.stringify(installments, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `cicilan-${new Date().toISOString().split('T')[0]}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const importInstallments = (importedData: Installment[]) => {
-    setInstallments((prev) => {
-      const existingIds = new Set(prev.map((i) => i.id));
-      const newInstallments = importedData.filter(
-        (i) => !existingIds.has(i.id)
-      );
-      return [...newInstallments, ...prev].sort(
-        (a, b) => (b.createdAt || 0) - (a.createdAt || 0)
-      );
-    });
+  const importInstallments = async (data: Installment[]) => {
+    for (const installment of data) {
+      await addInstallment({
+        name: installment.name,
+        totalAmount: installment.totalAmount,
+        monthlyAmount: installment.monthlyAmount,
+        startYear: installment.startYear,
+        startMonth: installment.startMonth,
+        durationMonths: installment.durationMonths || installment.totalMonths || 12,
+      });
+    }
   };
 
   return {
     installments,
-    isLoaded: isLoaded && (!useDatabase || !dbLoading),
+    isLoading,
+    isLoaded: !isLoading,
     addInstallment,
-    updateInstallment,
     deleteInstallment,
-    markPaymentAsPaid,
+    togglePayment,
+    getInstallmentProgress,
+    getProgressPercentage,
+    getRemainingAmount,
     markPaymentAsUnpaid,
     getTotalPaidAmount,
-    getRemainingAmount,
-    getProgressPercentage,
     getUpcomingPayments,
-    duplicateInstallment,
-    resetInstallment,
-    deleteAllInstallments,
-    exportInstallments,
     importInstallments,
   };
 }

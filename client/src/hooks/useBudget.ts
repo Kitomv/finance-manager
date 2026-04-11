@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
+import { useAuth } from '@/_core/hooks/useAuth';
 
 export interface Budget {
   id: string;
@@ -12,145 +13,91 @@ export interface Budget {
 }
 
 export function useBudget() {
+  const { user, isAuthenticated } = useAuth();
   const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [useDatabase, setUseDatabase] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Try to use tRPC queries
-  const { data: dbBudgets, isLoading: dbLoading } = trpc.budgets.list.useQuery({}, {
-    enabled: useDatabase,
+  // Fetch budgets from database via tRPC
+  const { data: dbBudgets, isLoading: dbLoading, refetch } = trpc.budgets.list.useQuery({}, {
+    enabled: isAuthenticated && !!user,
   });
 
-  const createMutation = trpc.budgets.create.useMutation();
-  const updateMutation = trpc.budgets.update.useMutation();
-  const deleteMutation = trpc.budgets.delete.useMutation();
+  const createMutation = trpc.budgets.create.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
+  });
 
-  // Load budgets from database or localStorage on mount
-  useEffect(() => {
-    const checkDatabase = async () => {
-      try {
-        // Check if user is authenticated
-        const user = await trpc.auth.me.useQuery().data;
-        if (user) {
-          setUseDatabase(true);
-        }
-      } catch (error) {
-        console.log('Database not available, using localStorage');
-      }
-    };
+  const updateMutation = trpc.budgets.update.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
+  });
 
-    checkDatabase();
-
-    // Load from localStorage as fallback
-    const stored = localStorage.getItem('finance-manager-budgets');
-    if (stored) {
-      try {
-        setBudgets(JSON.parse(stored));
-      } catch (error) {
-        console.error('Error loading budgets:', error);
-      }
-    }
-  }, []);
+  const deleteMutation = trpc.budgets.delete.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
+  });
 
   // Update budgets when database data changes
   useEffect(() => {
-    if (useDatabase && dbBudgets) {
+    if (dbBudgets) {
       const formattedBudgets = dbBudgets.map((b: any) => ({
         id: b.id,
         category: b.category,
         limit: b.limit,
         month: b.month,
         year: b.year,
-        createdAt: b.createdAt?.toISOString() || new Date().toISOString(),
+        createdAt: b.createdAt?.toISOString?.() || new Date().toISOString(),
       }));
       setBudgets(formattedBudgets);
     }
-  }, [dbBudgets, useDatabase]);
+  }, [dbBudgets]);
 
-  // Save budgets to localStorage whenever they change (fallback)
+  // Set loading state
   useEffect(() => {
-    if (!useDatabase) {
-      localStorage.setItem('finance-manager-budgets', JSON.stringify(budgets));
-    }
-  }, [budgets, useDatabase]);
-
-  const saveBudgets = (updatedBudgets: Budget[]) => {
-    setBudgets(updatedBudgets);
-    if (!useDatabase) {
-      localStorage.setItem('finance-manager-budgets', JSON.stringify(updatedBudgets));
-    }
-  };
+    setIsLoading(dbLoading);
+  }, [dbLoading]);
 
   const addBudget = async (category: string, limit: number, month: number, year: number) => {
-    const newBudget: Budget = {
-      id: `budget-${Date.now()}`,
-      category,
-      limit,
-      month,
-      year,
-      createdAt: new Date().toISOString(),
-    };
-
-    if (useDatabase) {
-      try {
-        await createMutation.mutateAsync({
-          category,
-          limit,
-          month,
-          year,
-        });
-        toast.success(`Budget untuk ${category} berhasil dibuat`);
-      } catch (error) {
-        console.error('Failed to create budget:', error);
-        // Fallback to localStorage
-        const updated = [...budgets, newBudget];
-        saveBudgets(updated);
-        toast.success(`Budget untuk ${category} berhasil dibuat`);
-      }
-    } else {
-      const updated = [...budgets, newBudget];
-      saveBudgets(updated);
+    try {
+      await createMutation.mutateAsync({
+        category,
+        limit,
+        month,
+        year,
+      });
       toast.success(`Budget untuk ${category} berhasil dibuat`);
+    } catch (error) {
+      console.error('Failed to create budget:', error);
+      toast.error('Gagal membuat budget');
+      throw error;
     }
   };
 
   const updateBudget = async (id: string, limit: number) => {
-    if (useDatabase) {
-      try {
-        await updateMutation.mutateAsync({
-          id,
-          limit,
-        });
-        toast.success('Budget berhasil diperbarui');
-      } catch (error) {
-        console.error('Failed to update budget:', error);
-        // Fallback to localStorage
-        const updated = budgets.map(b => (b.id === id ? { ...b, limit } : b));
-        saveBudgets(updated);
-        toast.success('Budget berhasil diperbarui');
-      }
-    } else {
-      const updated = budgets.map(b => (b.id === id ? { ...b, limit } : b));
-      saveBudgets(updated);
+    try {
+      await updateMutation.mutateAsync({
+        id,
+        limit,
+      });
       toast.success('Budget berhasil diperbarui');
+    } catch (error) {
+      console.error('Failed to update budget:', error);
+      toast.error('Gagal memperbarui budget');
+      throw error;
     }
   };
 
   const deleteBudget = async (id: string) => {
-    if (useDatabase) {
-      try {
-        await deleteMutation.mutateAsync({ id });
-        toast.success('Budget berhasil dihapus');
-      } catch (error) {
-        console.error('Failed to delete budget:', error);
-        // Fallback to localStorage
-        const updated = budgets.filter(b => b.id !== id);
-        saveBudgets(updated);
-        toast.success('Budget berhasil dihapus');
-      }
-    } else {
-      const updated = budgets.filter(b => b.id !== id);
-      saveBudgets(updated);
+    try {
+      await deleteMutation.mutateAsync({ id });
       toast.success('Budget berhasil dihapus');
+    } catch (error) {
+      console.error('Failed to delete budget:', error);
+      toast.error('Gagal menghapus budget');
+      throw error;
     }
   };
 
@@ -164,6 +111,7 @@ export function useBudget() {
 
   return {
     budgets,
+    isLoading,
     addBudget,
     updateBudget,
     deleteBudget,

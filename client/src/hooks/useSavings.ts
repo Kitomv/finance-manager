@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
+<<<<<<< Updated upstream
 import { useNotification } from '@/contexts/NotificationContext';
 import { TRPCClientError } from '@trpc/client';
+=======
+import { useAuth } from '@/_core/hooks/useAuth';
+>>>>>>> Stashed changes
 
 export interface Saving {
   id: string;
@@ -16,6 +20,7 @@ export interface Saving {
   updatedAt?: number;
 }
 
+<<<<<<< Updated upstream
 /**
  * Get friendly error message from tRPC error
  */
@@ -108,26 +113,67 @@ export function useSavings() {
         message: errorMsg,
         duration: 6000,
       });
+=======
+export function useSavings() {
+  const { user, isAuthenticated } = useAuth();
+  const [savings, setSavings] = useState<Saving[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Fetch savings from database via tRPC
+  const { data: dbSavings, isLoading: dbLoading, refetch } = trpc.savings.list.useQuery(undefined, {
+    enabled: isAuthenticated && !!user,
+  });
+
+  const createMutation = trpc.savings.create.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
+  });
+
+  const updateMutation = trpc.savings.update.useMutation({
+    onSuccess: () => {
+      refetch();
+    },
+  });
+
+  const deleteMutation = trpc.savings.delete.useMutation({
+    onSuccess: () => {
+      refetch();
+>>>>>>> Stashed changes
     },
   });
 
   // Update savings when database data changes
   useEffect(() => {
+<<<<<<< Updated upstream
     if (dbSavings?.data) {
       const formattedSavings = dbSavings.data.map((s: any) => ({
+=======
+    if (dbSavings) {
+      const formattedSavings = dbSavings.map((s: any) => ({
+>>>>>>> Stashed changes
         id: s.id,
         name: s.name,
-        description: '',
+        description: s.description || '',
         targetAmount: s.targetAmount,
         currentAmount: s.currentAmount,
         category: s.category,
-        createdAt: s.createdAt?.getTime() || Date.now(),
-        updatedAt: s.updatedAt?.getTime() || Date.now(),
+        createdAt: s.createdAt?.getTime?.() || Date.now(),
+        updatedAt: s.updatedAt?.getTime?.() || Date.now(),
       }));
       setSavings(formattedSavings);
     }
+<<<<<<< Updated upstream
     setIsLoaded(!dbLoading);
   }, [dbSavings, dbLoading]);
+=======
+  }, [dbSavings]);
+
+  // Set loading state
+  useEffect(() => {
+    setIsLoading(dbLoading);
+  }, [dbLoading]);
+>>>>>>> Stashed changes
 
   const addSaving = async (data: Omit<Saving, 'id' | 'createdAt' | 'updatedAt'>) => {
     try {
@@ -135,9 +181,16 @@ export function useSavings() {
         name: data.name,
         category: data.category,
         targetAmount: data.targetAmount,
+<<<<<<< Updated upstream
       });
     } catch (error) {
       // Error already handled in mutation callbacks
+=======
+        currentAmount: data.currentAmount,
+      });
+    } catch (error) {
+      console.error('Failed to create saving:', error);
+>>>>>>> Stashed changes
       throw error;
     }
   };
@@ -149,7 +202,11 @@ export function useSavings() {
         ...updates,
       });
     } catch (error) {
+<<<<<<< Updated upstream
       // Error already handled in mutation callbacks
+=======
+      console.error('Failed to update saving:', error);
+>>>>>>> Stashed changes
       throw error;
     }
   };
@@ -158,6 +215,7 @@ export function useSavings() {
     try {
       await deleteMutation.mutateAsync({ id });
     } catch (error) {
+<<<<<<< Updated upstream
       // Error already handled in mutation callbacks
       throw error;
     }
@@ -210,6 +268,10 @@ export function useSavings() {
   const getActiveSavings = () => {
     } else {
       setSavings((prev) => prev.filter((saving) => saving.id !== id));
+=======
+      console.error('Failed to delete saving:', error);
+      throw error;
+>>>>>>> Stashed changes
     }
   };
 
@@ -283,7 +345,7 @@ export function useSavings() {
 
   return {
     savings,
-    isLoaded: isLoaded && (!useDatabase || !dbLoading),
+    isLoaded: !dbLoading,
     addSaving,
     updateSaving,
     deleteSaving,
