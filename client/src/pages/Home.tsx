@@ -57,7 +57,7 @@ export default function Home() {
   };
 
   const upcomingPayments = getUpcomingPayments();
-  const activeInstallments = installments.filter((i) => getProgressPercentage(i) < 100).length;
+  const activeInstallments = installments.filter((i) => getProgressPercentage(i.id) < 100).length;
 
   if (!isLoaded) {
     return (

@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react';
 import { trpc } from '@/lib/trpc';
-<<<<<<< Updated upstream
-import { useNotification } from '@/contexts/NotificationContext';
-import { TRPCClientError } from '@trpc/client';
-=======
-import { useAuth } from '@/_core/hooks/useAuth';
->>>>>>> Stashed changes
 
 export interface Saving {
   id: string;
@@ -20,258 +14,142 @@ export interface Saving {
   updatedAt?: number;
 }
 
-<<<<<<< Updated upstream
-/**
- * Get friendly error message from tRPC error
- */
-const getErrorMessage = (error: unknown): string => {
-  if (error instanceof TRPCClientError) {
-    switch (error.data?.code) {
-      case 'BAD_REQUEST':
-        return 'Data tabungan tidak valid';
-      case 'UNAUTHORIZED':
-        return 'Anda perlu login terlebih dahulu';
-      default:
-        return error.message || 'Gagal memproses tabungan';
-    }
-  }
-  return 'Terjadi kesalahan yang tidak diketahui';
-};
+const STORAGE_KEY = 'finance-manager-savings';
 
 export function useSavings() {
-  const { addNotification } = useNotification();
   const [savings, setSavings] = useState<Saving[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [useDatabase, setUseDatabase] = useState(false);
 
-  // Fetch savings from database
-  const { data: dbSavings, isLoading: dbLoading, refetch } = trpc.savings.list.useQuery(
-    { page: 1, limit: 50 },
-    {
-      staleTime: 1000 * 60 * 5,
-      gcTime: 1000 * 60 * 10,
-      refetchOnWindowFocus: false,
+  // Try to use tRPC queries
+  const { data: dbSavings, isLoading: dbLoading } = trpc.savings.list.useQuery(undefined, {
+    enabled: useDatabase,
+  });
+
+  const createMutation = trpc.savings.create.useMutation();
+  const updateMutation = trpc.savings.update.useMutation();
+  const deleteMutation = trpc.savings.delete.useMutation();
+
+  // Load savings from database or localStorage on mount
+  useEffect(() => {
+    const checkDatabase = async () => {
+      try {
+        // Check if user is authenticated
+        const user = await trpc.auth.me.useQuery().data;
+        if (user) {
+          setUseDatabase(true);
+        }
+      } catch (error) {
+        console.log('Database not available, using localStorage');
+      }
+    };
+
+    checkDatabase();
+
+    // Load from localStorage as fallback
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      try {
+        setSavings(JSON.parse(stored));
+      } catch (error) {
+        console.error('Failed to parse savings from localStorage:', error);
+      }
     }
-  );
-
-  const createMutation = trpc.savings.create.useMutation({
-    onSuccess: (data) => {
-      refetch();
-      addNotification({
-        type: 'success',
-        title: 'Target Tabungan Dibuat',
-        message: `${data.name} Sebesar Rp ${(data.targetAmount / 100).toLocaleString('id-ID')} telah dibuat`,
-        duration: 5000,
-      });
-    },
-    onError: (error) => {
-      const errorMsg = getErrorMessage(error);
-      addNotification({
-        type: 'error',
-        title: 'Gagal Membuat Target Tabungan',
-        message: errorMsg,
-        duration: 6000,
-      });
-    },
-  });
-
-  const updateMutation = trpc.savings.update.useMutation({
-    onSuccess: () => {
-      refetch();
-      addNotification({
-        type: 'success',
-        title: 'Target Tabungan Diperbarui',
-        message: 'Perubahan telah disimpan',
-        duration: 4000,
-      });
-    },
-    onError: (error) => {
-      const errorMsg = getErrorMessage(error);
-      addNotification({
-        type: 'error',
-        title: 'Gagal Memperbarui Target Tabungan',
-        message: errorMsg,
-        duration: 6000,
-      });
-    },
-  });
-
-  const deleteMutation = trpc.savings.delete.useMutation({
-    onSuccess: () => {
-      refetch();
-      addNotification({
-        type: 'success',
-        title: 'Target Tabungan Dihapus',
-        message: 'Target telah dihapus dengan aman',
-        duration: 4000,
-      });
-    },
-    onError: (error) => {
-      const errorMsg = getErrorMessage(error);
-      addNotification({
-        type: 'error',
-        title: 'Gagal Menghapus Target Tabungan',
-        message: errorMsg,
-        duration: 6000,
-      });
-=======
-export function useSavings() {
-  const { user, isAuthenticated } = useAuth();
-  const [savings, setSavings] = useState<Saving[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Fetch savings from database via tRPC
-  const { data: dbSavings, isLoading: dbLoading, refetch } = trpc.savings.list.useQuery(undefined, {
-    enabled: isAuthenticated && !!user,
-  });
-
-  const createMutation = trpc.savings.create.useMutation({
-    onSuccess: () => {
-      refetch();
-    },
-  });
-
-  const updateMutation = trpc.savings.update.useMutation({
-    onSuccess: () => {
-      refetch();
-    },
-  });
-
-  const deleteMutation = trpc.savings.delete.useMutation({
-    onSuccess: () => {
-      refetch();
->>>>>>> Stashed changes
-    },
-  });
+    setIsLoaded(true);
+  }, []);
 
   // Update savings when database data changes
   useEffect(() => {
-<<<<<<< Updated upstream
-    if (dbSavings?.data) {
-      const formattedSavings = dbSavings.data.map((s: any) => ({
-=======
-    if (dbSavings) {
+    if (useDatabase && dbSavings) {
       const formattedSavings = dbSavings.map((s: any) => ({
->>>>>>> Stashed changes
         id: s.id,
         name: s.name,
-        description: s.description || '',
+        description: '',
         targetAmount: s.targetAmount,
         currentAmount: s.currentAmount,
         category: s.category,
-        createdAt: s.createdAt?.getTime?.() || Date.now(),
-        updatedAt: s.updatedAt?.getTime?.() || Date.now(),
+        createdAt: s.createdAt?.getTime() || Date.now(),
+        updatedAt: s.updatedAt?.getTime() || Date.now(),
       }));
       setSavings(formattedSavings);
     }
-<<<<<<< Updated upstream
-    setIsLoaded(!dbLoading);
-  }, [dbSavings, dbLoading]);
-=======
-  }, [dbSavings]);
+  }, [dbSavings, useDatabase]);
 
-  // Set loading state
+  // Save savings to localStorage whenever they change (fallback)
   useEffect(() => {
-    setIsLoading(dbLoading);
-  }, [dbLoading]);
->>>>>>> Stashed changes
+    if (isLoaded && !useDatabase) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savings));
+    }
+  }, [savings, isLoaded, useDatabase]);
 
   const addSaving = async (data: Omit<Saving, 'id' | 'createdAt' | 'updatedAt'>) => {
-    try {
-      await createMutation.mutateAsync({
-        name: data.name,
-        category: data.category,
-        targetAmount: data.targetAmount,
-<<<<<<< Updated upstream
-      });
-    } catch (error) {
-      // Error already handled in mutation callbacks
-=======
-        currentAmount: data.currentAmount,
-      });
-    } catch (error) {
-      console.error('Failed to create saving:', error);
->>>>>>> Stashed changes
-      throw error;
+    const newSaving: Saving = {
+      ...data,
+      id: `${Date.now()}-${Math.random()}`,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    if (useDatabase) {
+      try {
+        await createMutation.mutateAsync({
+          name: data.name,
+          category: data.category,
+          targetAmount: data.targetAmount,
+          currentAmount: data.currentAmount,
+        });
+      } catch (error) {
+        console.error('Failed to create saving:', error);
+        // Fallback to localStorage
+        setSavings((prev) => [newSaving, ...prev]);
+      }
+    } else {
+      setSavings((prev) => [newSaving, ...prev]);
     }
+
+    return newSaving;
   };
 
   const updateSaving = async (id: string, updates: Partial<Omit<Saving, 'id' | 'createdAt'>>) => {
-    try {
-      await updateMutation.mutateAsync({
-        id,
-        ...updates,
-      });
-    } catch (error) {
-<<<<<<< Updated upstream
-      // Error already handled in mutation callbacks
-=======
-      console.error('Failed to update saving:', error);
->>>>>>> Stashed changes
-      throw error;
+    if (useDatabase) {
+      try {
+        await updateMutation.mutateAsync({
+          id,
+          ...updates,
+        });
+      } catch (error) {
+        console.error('Failed to update saving:', error);
+        // Fallback to localStorage
+        setSavings((prev) =>
+          prev.map((saving) =>
+            saving.id === id
+              ? { ...saving, ...updates, updatedAt: Date.now() }
+              : saving
+          )
+        );
+      }
+    } else {
+      setSavings((prev) =>
+        prev.map((saving) =>
+          saving.id === id
+            ? { ...saving, ...updates, updatedAt: Date.now() }
+            : saving
+        )
+      );
     }
   };
 
   const deleteSaving = async (id: string) => {
-    try {
-      await deleteMutation.mutateAsync({ id });
-    } catch (error) {
-<<<<<<< Updated upstream
-      // Error already handled in mutation callbacks
-      throw error;
-    }
-  };
-
-  const addToSaving = async (id: string, amount: number) => {
-    const saving = savings.find((s) => s.id === id);
-    if (!saving) return;
-
-    const newAmount = saving.currentAmount + amount;
-    await updateSaving(id, { currentAmount: newAmount });
-  };
-
-  const withdrawFromSaving = async (id: string, amount: number) => {
-    const saving = savings.find((s) => s.id === id);
-    if (!saving) return;
-
-    const newAmount = Math.max(0, saving.currentAmount - amount);
-    await updateSaving(id, { currentAmount: newAmount });
-  };
-
-  const getTotalSavings = () => {
-    return savings.reduce((sum, saving) => sum + saving.currentAmount, 0);
-  };
-
-  const getTotalTarget = () => {
-    return savings.reduce((sum, saving) => sum + saving.targetAmount, 0);
-  };
-
-  const getProgressPercentage = (id: string) => {
-    const saving = savings.find((s) => s.id === id);
-    if (!saving || saving.targetAmount === 0) return 0;
-    return Math.min(100, Math.round((saving.currentAmount / saving.targetAmount) * 100));
-  };
-
-  const getRemainingAmount = (id: string) => {
-    const saving = savings.find((s) => s.id === id);
-    if (!saving) return 0;
-    return Math.max(0, saving.targetAmount - saving.currentAmount);
-  };
-
-  const getSavingsByCategory = (category: string) => {
-    return savings.filter((s) => s.category === category);
-  };
-
-  const getCompletedSavings = () => {
-    return savings.filter((s) => s.currentAmount >= s.targetAmount);
-  };
-
-  const getActiveSavings = () => {
+    if (useDatabase) {
+      try {
+        await deleteMutation.mutateAsync({ id });
+      } catch (error) {
+        console.error('Failed to delete saving:', error);
+        // Fallback to localStorage
+        setSavings((prev) => prev.filter((saving) => saving.id !== id));
+      }
     } else {
       setSavings((prev) => prev.filter((saving) => saving.id !== id));
-=======
-      console.error('Failed to delete saving:', error);
-      throw error;
->>>>>>> Stashed changes
     }
   };
 
@@ -345,7 +223,7 @@ export function useSavings() {
 
   return {
     savings,
-    isLoaded: !dbLoading,
+    isLoaded: isLoaded && (!useDatabase || !dbLoading),
     addSaving,
     updateSaving,
     deleteSaving,

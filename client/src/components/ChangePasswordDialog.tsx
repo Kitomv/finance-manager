@@ -1,9 +1,9 @@
 import { useState } from 'react';
+import { useAccessControl } from '@/contexts/AccessControlContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
-import { trpc } from '@/lib/trpc';
 import {
   Dialog,
   DialogContent,
@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 
 export default function ChangePasswordDialog() {
+  const { currentUser, updateUserPassword } = useAccessControl();
   const [isOpen, setIsOpen] = useState(false);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -45,15 +46,17 @@ export default function ChangePasswordDialog() {
       return;
     }
 
-    // Note: Password validation akan dilakukan di backend
-    // Frontend tidak perlu check password lama
+    if (oldPassword !== currentUser?.password) {
+      toast.error('Password lama tidak sesuai');
+      return;
+    }
 
     setIsLoading(true);
     try {
-      // TODO: Implement change password mutation via tRPC
-      // For now, just show success message
+      // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 500));
       
+      updateUserPassword(currentUser!.id, newPassword);
       toast.success('Password berhasil diubah');
       
       // Reset form

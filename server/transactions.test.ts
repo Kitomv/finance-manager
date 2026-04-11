@@ -74,7 +74,7 @@ describe('Transactions Router', () => {
     const db = await getDb();
     if (db) {
       try {
-        await deleteTransaction(testTransactionId, testUserId);
+        await deleteTransaction(testTransactionId);
       } catch (error) {
         // Ignore cleanup errors
       }

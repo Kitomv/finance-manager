@@ -13,7 +13,7 @@ export default function Installments() {
     isLoaded,
     addInstallment,
     deleteInstallment,
-    togglePayment,
+    markPaymentAsPaid,
     markPaymentAsUnpaid,
     getTotalPaidAmount,
     getRemainingAmount,
@@ -25,7 +25,7 @@ export default function Installments() {
 
   const filteredInstallments = installments.filter((inst) => {
     if (filterStatus === 'all') return true;
-    const progress = getProgressPercentage(inst);
+    const progress = getProgressPercentage(inst.id);
     if (filterStatus === 'active') return progress < 100;
     return progress === 100;
   });
@@ -43,13 +43,11 @@ export default function Installments() {
   };
 
   const handleMarkPayment = (installmentId: string, paymentId: string, isPaid: boolean) => {
-    // Parse month and year from paymentId (format: "month-year")
-    const [month, year] = paymentId.split('-').map(Number);
     if (isPaid) {
-      togglePayment(installmentId, month, year, true);
+      markPaymentAsPaid(installmentId, paymentId);
       toast.success('Pembayaran ditandai sebagai terbayar');
     } else {
-      markPaymentAsUnpaid(installmentId, month, year);
+      markPaymentAsUnpaid(installmentId, paymentId);
       toast.success('Pembayaran ditandai sebagai belum terbayar');
     }
   };
@@ -65,9 +63,9 @@ export default function Installments() {
   }
 
   const totalInstallments = installments.length;
-  const activeInstallments = installments.filter((i) => getProgressPercentage(i) < 100).length;
-  const completedInstallments = installments.filter((i) => getProgressPercentage(i) === 100).length;
-  const totalRemainingAmount = installments.reduce((sum, inst) => sum + getRemainingAmount(inst), 0);
+  const activeInstallments = installments.filter((i) => getProgressPercentage(i.id) < 100).length;
+  const completedInstallments = installments.filter((i) => getProgressPercentage(i.id) === 100).length;
+  const totalRemainingAmount = installments.reduce((sum, inst) => sum + getRemainingAmount(inst.id), 0);
   const upcomingPayments = getUpcomingPayments();
 
   return (
@@ -170,9 +168,9 @@ export default function Installments() {
               <InstallmentCard
                 key={installment.id}
                 installment={installment}
-                progress={getProgressPercentage(installment)}
-                totalPaid={getTotalPaidAmount(installment)}
-                remaining={getRemainingAmount(installment)}
+                progress={getProgressPercentage(installment.id)}
+                totalPaid={getTotalPaidAmount(installment.id)}
+                remaining={getRemainingAmount(installment.id)}
                 onDelete={handleDeleteInstallment}
                 onMarkPayment={handleMarkPayment}
               />

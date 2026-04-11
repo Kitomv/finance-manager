@@ -4,6 +4,9 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import { AccessControlProvider, useAccessControl } from "./contexts/AccessControlContext";
+import NotificationContainer from "./components/NotificationContainer";
 import Home from "./pages/Home";
 import Transactions from "./pages/Transactions";
 import Analytics from "./pages/Analytics";
@@ -11,27 +14,30 @@ import Settings from "./pages/Settings";
 import Installments from "./pages/Installments";
 import Savings from "./pages/Savings";
 import Budget from "./pages/Budget";
+import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
 import AdminDashboard from "./pages/AdminDashboard";
-import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "./const";
 
-function Router() {
-  const { user, isAuthenticated, loading } = useAuth();
+function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+  const { currentUser } = useAccessControl();
   
-  // Show loading state while checking auth
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <p className="text-muted-foreground">Memuat...</p>
-      </div>
-    );
+  if (!currentUser) {
+    return <Login />;
   }
   
-  // Redirect to login if not authenticated
-  if (!isAuthenticated) {
-    window.location.href = getLoginUrl();
-    return null;
+  return <Component />;
+}
+
+function Router() {
+  const { currentUser } = useAccessControl();
+  
+  if (!currentUser) {
+    return (
+      <Switch>
+        <Route path="/" component={Login} />
+        <Route component={Login} />
+      </Switch>
+    );
   }
   
   return (
@@ -43,12 +49,8 @@ function Router() {
       <Route path="/savings" component={Savings} />
       <Route path="/budget" component={Budget} />
       <Route path="/settings" component={Settings} />
-      {user?.role === 'admin' && (
-        <>
-          <Route path="/user-management" component={UserManagement} />
-          <Route path="/admin" component={AdminDashboard} />
-        </>
-      )}
+      <Route path="/user-management" component={UserManagement} />
+      <Route path="/admin" component={AdminDashboard} />
       <Route path="/404" component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
@@ -64,15 +66,20 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        switchable
-      >
-        <TooltipProvider>
-          <Toaster />
-          <Router />
-        </TooltipProvider>
-      </ThemeProvider>
+      <AccessControlProvider>
+        <ThemeProvider
+          defaultTheme="light"
+          switchable
+        >
+          <NotificationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <NotificationContainer />
+              <Router />
+            </TooltipProvider>
+          </NotificationProvider>
+        </ThemeProvider>
+      </AccessControlProvider>
     </ErrorBoundary>
   );
 }
