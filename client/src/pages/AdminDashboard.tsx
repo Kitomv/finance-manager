@@ -6,10 +6,12 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Users, Activity, BarChart3, ChevronRight } from 'lucide-react';
+import { AlertCircle, Users, Activity, BarChart3, ChevronRight, ArrowLeft } from 'lucide-react';
 import { useAdminAccess } from '@/hooks/useAdminAccess';
+import { useLocation } from 'wouter';
 
 export default function AdminDashboard() {
+  const [, navigate] = useLocation();
   const { isAdmin, loading } = useAdminAccess();
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
@@ -88,10 +90,23 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <p className="text-muted-foreground">Manage users and monitor system activity</p>
+      {/* Header with Back Button */}
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate('/')}
+              className="gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
+          </div>
+          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+          <p className="text-muted-foreground">Manage users and monitor system activity</p>
+        </div>
       </div>
 
       {/* Statistics Cards */}
